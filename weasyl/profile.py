@@ -749,6 +749,7 @@ class ProfileSettings(object):
         "allow_collection_notifs": Setting(True, bool),
         "disable_custom_thumbs": Setting(False, bool),
         "max_sfw_rating": Setting(ratings.GENERAL.code, _valid_rating),
+        "site_css_style": Setting("default", str),
     }
 
     def __init__(self, json):

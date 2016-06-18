@@ -19,7 +19,14 @@ $code:
     <title>Weasyl</title>
 
   <link rel="stylesheet" href="${CDNIFY('/static/fonts/museo500.css')}" />
-  <link rel="stylesheet" href="${resource_path('css/site.css')}" />
+  $if query is None:
+    <link rel="stylesheet" href="${resource_path('css/site.css')}" />
+  $elif "dark" == query['site_css_style']:
+    <!-- #### EXAMPLE CSS CODE ONLY. IT WILL NEED TO BE MADE TO A DEV
+              ACCEPTED 'dark' STYLE. >>>AKA, DON'T MERGE<<< #### -->
+    <link rel="stylesheet" href="${CDNIFY('static/publicDark.css')}" />
+  $else:
+    <link rel="stylesheet" href="${resource_path('css/site.css')}" />
 
   <link type="image/png" rel="icon" href="${CDNIFY('/static/images/favicon.png')}" />
 

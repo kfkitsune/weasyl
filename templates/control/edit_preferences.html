@@ -28,6 +28,13 @@ $code:
       <input type="checkbox" name="twelvehour"$:{_CHECKED("2")} />
       Show times as 12-hour time <em class="color-lighter">(e.g. 12:34:56 AM)</em>
     </label>
+
+    <label for="site_css_style">Site Visual Style</label>
+    <select name="site_css_style" class="input" id="site_css_style">
+      <option value="default"$:{' selected' if "default" == jsonb_settings.site_css_style else ''}>Weasyl default style</option>
+      <option value="dark"$:{' selected' if "dark" == jsonb_settings.site_css_style else ''}>Weasyl dark style</option>
+    </select>
+    
     <label for="custom_thumbs">Custom Thumbnails</label>
     <select name="custom_thumbs" class="input" id="custom_thumbs">
       <option value="enable"$:{' selected' if not jsonb_settings.disable_custom_thumbs else ''}>

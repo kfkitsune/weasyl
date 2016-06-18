@@ -245,6 +245,8 @@ class control_editpreferences_(controller_base):
         jsonb_settings = define.get_profile_settings(self.user_id)
         jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
         jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
+        jsonb_settings.site_css_style = ("dark" if form.site_css_style == "dark"
+                                         else "default")
 
         preferences = profile.Config()
         preferences.twelvehour = bool(form.twelvehour)

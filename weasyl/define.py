@@ -828,6 +828,7 @@ def page_header_info(userid):
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
+        "site_css_style": get_profile_settings(userid).site_css_style,
     }
 
 
