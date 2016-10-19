@@ -132,11 +132,11 @@ def parse_blacklist_tags(text):
     """
     tags = set()
 
-    regex_pattern = re.compile(r"""(\w+\*\w+|  # Matches a*a
-                               \w{2,}\*|       # Matches aa*
-                               \*\w{2,}|       # Matches *aa
-                               \w+)            # Matches a, aa, aaa, red_fox, etc.
-                               """, re.VERBOSE)
+    regex_pattern = re.compile(r"""(\w+\*\w+|    # Matches a*a
+                               \w{2,}\*|         # Matches aa*
+                               \*\w{2,}|         # Matches *aa
+                               ^\w+$)            # Matches a, aa, aaa, red_fox, etc.
+                               """, flags=re.VERBOSE|re.MULTILINE)
 
     for i in _TAG_DELIMITER.split(text):
         target = "".join([c for c in i if ord(c) < 128])
@@ -291,11 +291,11 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
             SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
         """, title=list(tags)).fetchall()
     # Parse input tags for validity
-    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
-                              \w{2,}\*| # Matches aa*
-                              \*\w{2,}| # Matches *aa
-                              \w+)      # Matches a, aa, aaa, red_fox, etc.
-                         """, re.VERBOSE)
+    regex_pattern = re.compile(r"""(\w+\*\w+|  # Matches a*a
+                               \w{2,}\*|       # Matches aa*
+                               \*\w{2,}|       # Matches *aa
+                               ^\w+$)          # Matches a, aa, aaa, red_fox, etc.
+                               """, flags=re.VERBOSE|re.MULTILINE)
 
     # Determine if the tag is 'valid' for the blacklist. See ``regex_pattern``, above for valid formats.
     for tag in tags:
@@ -393,10 +393,10 @@ def query_blacklisted_tags(newtagids, ownerid):
     Returns:
         blacklisted_tags: The tagids which are blacklisted as a set()
     """
-    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
-                                  \w{2,}\*|   # Matches aa*
-                                  \*\w{2,})   # Matches *aa
-                               """, re.VERBOSE)
+    regex_pattern = re.compile(r"""(\w+\*\w+|   # Matches a*a
+                                    \w{2,}\*|   # Matches aa*
+                                    \*\w{2,})   # Matches *aa
+                               """, flags=re.VERBOSE)
     blacklist_query = d.engine.execute("""
         SELECT st.tagid, st.title
         FROM searchmapuserblacklist
