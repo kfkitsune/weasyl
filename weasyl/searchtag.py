@@ -139,7 +139,7 @@ def parse_blacklist_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if is_blacklist_pattern)valid(target):
+        if is_blacklist_pattern_valid(target):
             tags.add(target)
 
     return tags
