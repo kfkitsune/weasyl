@@ -31,7 +31,7 @@ def test_edit_user_stbl_with_no_prior_entries():
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(user_id, tags)
-    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
+    resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
     assert len(resultant_tags) == len(valid_tags)
     for result in valid_tags:
         assert result in resultant_tags
@@ -52,7 +52,7 @@ def test_edit_user_stbl_with_prior_entries_test_removal_of_stbl_entry():
     tags = searchtag.parse_blacklist_tags(", ".join(tags_to_keep))
     searchtag.edit_searchtag_blacklist(user_id, tags)
 
-    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
+    resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
     assert len(resultant_tags) == len(tags_to_keep)
     for kept in tags_to_keep:
         assert kept in resultant_tags
@@ -67,7 +67,7 @@ def test_edit_user_stbl_fully_clear_entries_after_adding_items():
     searchtag.edit_searchtag_blacklist(user_id, tags)
     tags = searchtag.parse_blacklist_tags(", ".join({''}))
     searchtag.edit_searchtag_blacklist(user_id, tags)
-    assert searchtag.get_searchtag_blacklist(user_id) == []
+    assert searchtag.get_user_searchtag_blacklist(user_id) == []
 
 
 @pytest.mark.usefixtures('db')
@@ -78,7 +78,7 @@ def test_edit_global_stbl_fully_clear_entries_after_adding_items(monkeypatch):
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
     tags = searchtag.parse_blacklist_tags(", ".join({''}))
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
-    assert searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True) == []
+    assert searchtag.get_global_searchtag_blacklist(director_user_id) == []
 
 
 @pytest.mark.usefixtures('db')
@@ -118,7 +118,7 @@ def test_edit_global_stbl(monkeypatch):
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
-    resultant_tags = searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True)
+    resultant_tags = searchtag.get_global_searchtag_blacklist(director_user_id)
     assert len(resultant_tags) == len(valid_tags)
     resultant_tags_titles = {x.title for x in resultant_tags}
     for result in valid_tags:
