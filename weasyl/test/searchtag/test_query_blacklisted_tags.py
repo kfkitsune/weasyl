@@ -25,15 +25,14 @@ def test_query_without_regex(monkeypatch):
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
-    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
-
-    query = d.engine.execute("""
-        SELECT tagid, title
-        FROM searchtag
-        WHERE title = ANY (%(tags)s)
-    """, tags=list(x for x in combined_tags)).fetchall()
-
-    non_regexp_tag_ids = {x.tagid for x in query if not x.title.count("*")}
+    
+    # Create and get the tag IDs for the non-regex STBL tags
+    non_regexp_tag_ids = {
+        db_utils.create_tag("user_one"),
+        db_utils.create_tag("global_one"),
+    }
+    
+    searchtag.edit_global_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
     # Function under test
     query_result = searchtag.query_blacklisted_tags(non_regexp_tag_ids, user_id)
@@ -55,6 +54,7 @@ def test_query_with_regex(monkeypatch):
     tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
+    # Create tag IDs for tags which will eventually match the STBL query
     tagids_matching_regexp_pattern = {
         db_utils.create_tag("linuxmint"),
         db_utils.create_tag("blocked"),
@@ -67,6 +67,5 @@ def test_query_with_regex(monkeypatch):
     # Function under test
     query_result = searchtag.query_blacklisted_tags(tagids_matching_regexp_pattern, user_id)
 
-    assert len(query_result) == len(tagids_matching_regexp_pattern)
     for item in tagids_matching_regexp_pattern:
         assert item in query_result
