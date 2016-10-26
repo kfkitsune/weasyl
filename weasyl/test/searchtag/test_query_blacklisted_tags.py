@@ -21,10 +21,6 @@ def test_query_without_regex(monkeypatch):
     """
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(user_tags))
-    searchtag.edit_searchtag_blacklist(user_id, tags)
-    director_user_id = db_utils.create_user()
-    monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
-    tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
     
     # Create and get the tag IDs for the non-regex STBL tags
     non_regexp_tag_ids = {
@@ -32,6 +28,10 @@ def test_query_without_regex(monkeypatch):
         db_utils.create_tag("global_one"),
     }
     
+    searchtag.edit_searchtag_blacklist(user_id, tags)
+    director_user_id = db_utils.create_user()
+    monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
+    tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
     searchtag.edit_global_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
     # Function under test
