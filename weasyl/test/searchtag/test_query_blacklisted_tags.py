@@ -32,7 +32,7 @@ def test_query_without_regex(monkeypatch):
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
-    searchtag.edit_global_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
     # Function under test
     query_result = searchtag.query_blacklisted_tags(non_regexp_tag_ids, user_id)
