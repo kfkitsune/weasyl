@@ -139,12 +139,18 @@ def parse_blacklist_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if target.count("*") < 2 and "*" in target and len(target) > 2:
-            tags.add(target)
-        elif not target.count("*") and len(target):
+        if is_blacklist_pattern)valid(target):
             tags.add(target)
 
     return tags
+
+
+def is_blacklist_pattern_valid(text):
+    if text.count("*") < 2 and "*" in text and len(text) > 2:
+        return True
+    elif text and "*" not in text:
+        return True
+    return False
 
 
 def associate(userid, tags, submitid=None, charid=None, journalid=None):
@@ -331,42 +337,49 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
             """, uid=userid, removed=list(removed))
 
 
-def get_searchtag_blacklist(userid, global_blacklist=False):
+def get_user_searchtag_blacklist(userid):
     """
-    Retrieves a list of tags on the (user|global)blacklist for friendly display to the user.
+    Retrieves a list of tags on the user searchtag blacklist for friendly display to the user.
 
     Parameters:
         userid: The userid of the user requesting the list of tags.
-        global_blacklist: Boolean True if requesting tags from the global blacklist. Defaults to False.
 
     Returns:
-        A list of searchtags (and users for global blacklist requests).
+        A list of blacklisted searchtag titles which were set by ``userid``.
+    """
+    query = d.engine.execute("""
+        SELECT st.title
+        FROM searchmapuserblacklist
+        INNER JOIN searchtag AS st USING (tagid)
+        WHERE userid = %(userid)s
+        ORDER BY st.title ASC
+    """, userid=userid).fetchall()
+    tags = [tag.title for tag in query]
+    return tags
+
+
+def get_global_searchtag_blacklist():
+    """
+    Retrieves a list of tags on the global searchtag blacklist for friendly display to the director.
+
+    Parameters:
+        None.
+
+    Returns:
+        A list of globally blacklisted searchtag titles and the name of the user which added it.
     """
     # Only directors can edit the global blacklist; sanity check against the @director_only decorator
-    if global_blacklist and userid not in staff.DIRECTORS:
+    if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
-    # Tags on the global blacklist are being requested
-    if global_blacklist:
-        query = d.engine.execute("""
-            SELECT st.title, lo.login_name
-            FROM searchmapglobalblacklist
-            INNER JOIN searchtag AS st USING (tagid)
-            INNER JOIN login AS lo USING (userid)
-            ORDER BY st.title ASC
-        """).fetchall()
-        return query
-    # User blacklist tags are being requested
-    else:
-        query = d.engine.execute("""
-            SELECT st.title
-            FROM searchmapuserblacklist
-            INNER JOIN searchtag AS st USING (tagid)
-            WHERE userid = %(userid)s
-            ORDER BY st.title ASC
-        """, userid=userid).fetchall()
-        tags = [tag.title for tag in query]
-        return tags
+    query = d.engine.execute("""
+        SELECT st.title, lo.login_name
+        FROM searchmapglobalblacklist
+        INNER JOIN searchtag AS st USING (tagid)
+        INNER JOIN login AS lo USING (userid)
+        ORDER BY st.title ASC
+    """).fetchall()
+    return query
 
 
 def query_blacklisted_tags(newtagids, ownerid):
@@ -405,9 +418,9 @@ def query_blacklisted_tags(newtagids, ownerid):
         if x.tagid in newtagids:
             blacklisted_tag_ids.add(x.tagid)
         # Otherwise we need to parse for wildcards
-        elif x.title.count("*"):
-            # Convert '*' to '.*' as expected by regexp.
-            regex = x.title.replace("*", ".*")
+        elif "*" in x.title:
+            # Convert '*' to '.*' as expected by regexp, and add start|end anchors
+            regex =  "^" + x.title.replace("*", ".*") + "\Z"
             for i in tag_titles:
                 if re.match(regex, i.title):
                     blacklisted_tag_ids.add(i.tagid)
