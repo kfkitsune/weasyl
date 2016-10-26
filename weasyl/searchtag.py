@@ -358,12 +358,12 @@ def get_user_searchtag_blacklist(userid):
     return tags
 
 
-def get_global_searchtag_blacklist():
+def get_global_searchtag_blacklist(userid):
     """
     Retrieves a list of tags on the global searchtag blacklist for friendly display to the director.
 
     Parameters:
-        None.
+        userid: The userid of the user requesting the list of tags.
 
     Returns:
         A list of globally blacklisted searchtag titles and the name of the user which added it.
