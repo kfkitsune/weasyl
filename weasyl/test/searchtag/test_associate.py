@@ -184,18 +184,3 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
     for tag in tags_two:
         assert tag in journalid_tags
     assert "pearl" not in journalid_tags
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
