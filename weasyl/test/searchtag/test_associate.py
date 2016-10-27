@@ -36,7 +36,7 @@ def test_InsufficientPermissions_WeasylError_if_user_does_not_have_tagging_permi
     journalid = db_utils.create_journal(userid_owner)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
-    profile.do_manage(admin, userid_owner, permission_tag=False)
+    profile.do_manage(admin, userid_tag_adder, permission_tag=False)
     
     with pytest.raises(WeasylError) as err:
         searchtag.associate(userid_tag_adder, tags, submitid=submitid)
@@ -135,10 +135,10 @@ def test_clearing_all_tags():
     journalid = db_utils.create_journal(userid_owner)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
-
-    searchtag.associate(userid_tag_adder, {}, submitid=submitid)
-    searchtag.associate(userid_tag_adder, {}, charid=charid)
-    searchtag.associate(userid_tag_adder, {}, journalid=journalid)
+    empty_tags = searchtag.parse_tags("")
+    searchtag.associate(userid_tag_adder, empty_tags, submitid=submitid)
+    searchtag.associate(userid_tag_adder, empty_tags, charid=charid)
+    searchtag.associate(userid_tag_adder, empty_tags, journalid=journalid)
 
     submitid_tags = searchtag.select(submitid=submitid)
     assert submitid_tags == {}
