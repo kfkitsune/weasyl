@@ -170,7 +170,6 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
     searchtag.associate(userid_tag_adder, tags, journalid=journalid)
     
     # Verify that the "pearl" tag was not added
-    
     submitid_tags = searchtag.select(submitid=submitid)
     for tag in tags_two:
         assert tag in submitid_tags
