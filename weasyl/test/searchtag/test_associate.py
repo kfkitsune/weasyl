@@ -118,14 +118,17 @@ def test_removing_tags():
     submitid_tags = searchtag.select(submitid=submitid)
     for tag in tags_two:
         assert tag in submitid_tags
+    assert "pearl" not in submitid_tags
 
     charid_tags = searchtag.select(charid=charid)
     for tag in tags_two:
         assert tag in charid_tags
+    assert "pearl" not in charid_tags
 
     journalid_tags = searchtag.select(journalid=journalid)
     for tag in tags_two:
         assert tag in journalid_tags
+    assert "pearl" not in journalid_tags
 
 
 @pytest.mark.usefixtures('db')
