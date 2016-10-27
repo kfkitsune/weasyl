@@ -219,7 +219,7 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     # If the modifying user is not the owner of the object, check user/global blacklists
     if userid != ownerid:
         # Get the blacklisted tags
-        blacklisted_tags = query_blacklisted_tags(added, ownerid)
+        blacklisted_tags = query_blacklisted_tags(ownerid, added)
         # Remove tags that are blacklisted (if any)
         added -= blacklisted_tags
 
@@ -391,7 +391,7 @@ def get_global_searchtag_blacklist(userid):
     return query
 
 
-def query_blacklisted_tags(newtagids, ownerid):
+def query_blacklisted_tags(ownerid, newtagids):
     """
     Checks both the user and global searchtag blacklists against added tags, and
         returns the IDs of any tags matching the STBL, either based on strict
