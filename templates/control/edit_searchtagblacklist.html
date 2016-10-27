@@ -7,19 +7,11 @@ $:{RENDER("common/stage_title.html", ["Edit Searchtag Blacklist", "Settings"])}
     <h3>Searchtag Blacklist Information</h3>
     <p>
       Tags you add here will not be able to be added to your submitted items by
-      other users. You may still add these tags to your submissions. One wildcard per 
-      entry is permitted, in any position, and will cause any tag which matches the 
-      omitted characters to be blocked; entries with a wildcard must have at least 
-      two alphanumeric characters.
-      Examples of valid blacklist tags are as follows:
-    </p>
-    <p>
-      <ul>
-        <li><code>mu*</code> - Blocks <em>mu<strong>rmurs</strong></em>, mu<strong>zzle</strong></em>, or similar.</li>
-        <li><code>p*e</code> - Blocks <em>p<strong>eregrin</strong>e</em>, p<strong>lumag</strong>e</em>, or similar.</li>
-        <li><code>*us</code> - Blocks <em><strong>superstitio</strong>us</em>, <em><strong>outrageo</strong>us</em>, or similar.</li>
-        <li>Standard tags may also be used, such as: <code>red_fox</code> or <code>hermaphrodite</code>.</li>
-      </ul>
+      other users. You may, however, still add these tags to your own submissions. In
+      addition to blocking individual tags, you can forbid tag patterns by using <code>*</code>
+      as a wildcard. Wildcard entries must have at least two additional characters.
+      For example, <code>sun*</code> matches <em>sunrise</em> and <em>sunset</em>; <code>*_pen</code>
+      matches <em>fountain_pen</em> and <em>ballpoint_pen</em>.
     </p>
 
     <label for="detail_tag_form_content">Add or Remove Tags:</label><br />
