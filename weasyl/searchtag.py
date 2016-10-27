@@ -146,6 +146,15 @@ def parse_blacklist_tags(text):
 
 
 def is_blacklist_pattern_valid(text):
+    """
+    Determines if a given piece of text is considered a valid searchtag blacklist pattern.
+
+    Parameters:
+        text: A candidate searchtag blacklist entry
+
+    Returns:
+        Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
+    """
     if text.count("*") < 2 and "*" in text and len(text) > 2:
         return True
     elif text and "*" not in text:
@@ -368,7 +377,7 @@ def get_global_searchtag_blacklist(userid):
     Returns:
         A list of globally blacklisted searchtag titles and the name of the user which added it.
     """
-    # Only directors can edit the global blacklist; sanity check against the @director_only decorator
+    # Only directors can view the global blacklist; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
