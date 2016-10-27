@@ -135,20 +135,57 @@ def test_clearing_all_tags():
     journalid = db_utils.create_journal(userid_owner)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
+    searchtag.associate(userid_tag_adder, tags, submitid=submitid)
+    searchtag.associate(userid_tag_adder, tags, charid=charid)
+    searchtag.associate(userid_tag_adder, tags, journalid=journalid)
+    
+    # Clear all tags now that they were initially set
     empty_tags = searchtag.parse_tags("")
     searchtag.associate(userid_tag_adder, empty_tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, empty_tags, charid=charid)
     searchtag.associate(userid_tag_adder, empty_tags, journalid=journalid)
 
     submitid_tags = searchtag.select(submitid=submitid)
-    assert submitid_tags == {}
+    assert submitid_tags == []
     charid_tags = searchtag.select(charid=charid)
-    assert charid_tags == {}
+    assert charid_tags == []
     journalid_tags = searchtag.select(journalid=journalid)
-    assert journalid_tags == {}
+    assert journalid_tags == []
 
 
+@pytest.mark.usefixtures('db')
+def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
+    """
+    Verify that tags are excluded from being added to a submission's tags if the tag is blacklisted
+    """
+    userid_owner = db_utils.create_user()
+    userid_tag_adder = db_utils.create_user()
+    journalid = db_utils.create_journal(userid_owner)
+    charid = db_utils.create_character(userid_owner)
+    submitid = db_utils.create_submission(userid_owner)
+    blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
+    searchtag.edit_searchtag_blacklist(userid_owner, blacklisted_tag)
+    searchtag.associate(userid_tag_adder, tags, submitid=submitid)
+    searchtag.associate(userid_tag_adder, tags, charid=charid)
+    searchtag.associate(userid_tag_adder, tags, journalid=journalid)
+    
+    # Verify that the "pearl" tag was not added
+    
+    submitid_tags = searchtag.select(submitid=submitid)
+    for tag in tags_two:
+        assert tag in submitid_tags
+    assert "pearl" not in submitid_tags
+    
+    charid_tags = searchtag.select(charid=charid)
+    for tag in tags_two:
+        assert tag in charid_tags
+    assert "pearl" not in charid_tags
 
+    journalid_tags = searchtag.select(journalid=journalid)
+    for tag in tags_two:
+        assert tag in journalid_tags
+    assert "pearl" not in journalid_tags
+    
 
 
 
