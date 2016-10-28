@@ -216,8 +216,8 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         removed.difference_update(existing_artist_tags)
         entered_tagids.update(existing_artist_tags)
 
-    # If the modifying user is not the owner of the object, check user/global blacklists
-    if userid != ownerid:
+    # If the modifying user is not the owner of the object, or staff, check user/global blacklists
+    if userid != ownerid or userid in staff.MODS:
         # Get the blacklisted tags
         blacklisted_tags = query_blacklisted_tags(ownerid, added)
         # Remove tags that are blacklisted (if any)
