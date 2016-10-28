@@ -398,8 +398,8 @@ def query_blacklisted_tags(ownerid, newtagids):
         match, or regexp based match.
 
     Parameters:
-        newtagids: The list of added tag ids.
         ownerid: The userid of the submitted item being checked.
+        newtagids: The list of added tag ids.
 
     Returns:
         blacklisted_tags: The tagids which are blacklisted as a set()
