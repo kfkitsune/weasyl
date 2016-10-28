@@ -168,6 +168,7 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
     submitid = db_utils.create_submission(userid_owner)
     blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
     searchtag.edit_searchtag_blacklist(userid_owner, blacklisted_tag)
+    
     searchtag.associate(userid_tag_adder, tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, tags, charid=charid)
     searchtag.associate(userid_tag_adder, tags, journalid=journalid)
@@ -187,3 +188,37 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
     for tag in tags_two:
         assert tag in journalid_tags
     assert "pearl" not in journalid_tags
+
+
+@pytest.mark.usefixtures('db')
+def test_moderators_and_above_can_add_blacklisted_tags_successfully(monkeypatch):
+    """
+    Moderators (and admins, technical, and directors) can add blacklisted tags to content.
+    Developers are not included in this test, as they are for all intents and purposes just
+      normal user accounts.
+    """
+    userid_owner = db_utils.create_user()
+    mod_tag_adder = db_utils.create_user()
+    monkeypatch.setattr(staff, 'MODS', frozenset([mod_tag_adder]))
+    journalid = db_utils.create_journal(userid_owner)
+    charid = db_utils.create_character(userid_owner)
+    submitid = db_utils.create_submission(userid_owner)
+    blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
+    searchtag.edit_searchtag_blacklist(userid_owner, blacklisted_tag)
+    
+    searchtag.associate(mod_tag_adder, tags, submitid=submitid)
+    searchtag.associate(mod_tag_adder, tags, charid=charid)
+    searchtag.associate(mod_tag_adder, tags, journalid=journalid)
+    
+    # Verify that all tags were added successfully. 'pearl' is blacklisted.
+    submitid_tags = searchtag.select(submitid=submitid)
+    for tag in tags:
+        assert tag in submitid_tags
+    
+    charid_tags = searchtag.select(charid=charid)
+    for tag in tags:
+        assert tag in charid_tags
+
+    journalid_tags = searchtag.select(journalid=journalid)
+    for tag in tags:
+        assert tag in journalid_tags
