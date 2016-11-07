@@ -162,7 +162,7 @@ def test_attempt_setting_tags_when_some_tags_have_been_restricted():
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
     restricted_tag = searchtag.parse_restricted_tags("pearl")
-    searchtag.edit_user_searchtag_restrictions(userid_owner, restricted_tag)
+    searchtag.edit_user_tag_restrictions(userid_owner, restricted_tag)
 
     searchtag.associate(userid_tag_adder, tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, tags, charid=charid)
@@ -193,7 +193,7 @@ def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
     restricted_tag = searchtag.parse_restricted_tags("pearl")
-    searchtag.edit_user_searchtag_restrictions(userid_owner, restricted_tag)
+    searchtag.edit_user_tag_restrictions(userid_owner, restricted_tag)
 
     searchtag.associate(mod_tag_adder, tags, submitid=submitid)
     searchtag.associate(mod_tag_adder, tags, charid=charid)
