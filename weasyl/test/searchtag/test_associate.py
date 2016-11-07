@@ -12,6 +12,7 @@ from weasyl.test import db_utils
 tags = searchtag.parse_tags("omega_ruby, alpha_sapphire, diamond, pearl")
 tags_two = searchtag.parse_tags("omega_ruby, alpha_sapphire, diamond")
 
+
 @pytest.mark.usefixtures('db')
 def test_TargetRecordMissing_WeasylError_if_item_record_missing_or_invalid():
     userid_tag_adder = db_utils.create_user()
