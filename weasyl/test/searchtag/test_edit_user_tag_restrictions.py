@@ -14,10 +14,8 @@ combined_tags = valid_tags + invalid_tags
 @pytest.mark.usefixtures('db')
 def test_edit_user_tag_restrictions_with_no_prior_entries():
     """
-    Verify that SQL code to add tags to the STBL works as expected. Additionally tests as a consequence of the test tag set:
-
-    - That invalid tags are not added to the ``searchtag`` table.
-    - The ``if added:``, non-global codepath adding the map into ``user_restricted_tags``
+    Verify that we can successfully set new user restricted tags
+    when no existing tags have been set for a given user previously.
     """
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
@@ -27,7 +25,7 @@ def test_edit_user_tag_restrictions_with_no_prior_entries():
 
 
 @pytest.mark.usefixtures('db')
-def test_edit_user_tag_restrictions_with_prior_entries_test_removal_of_stbl_entry():
+def test_edit_user_tag_restrictions_with_prior_entries_test_removal_of_entry():
     # Setup
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))

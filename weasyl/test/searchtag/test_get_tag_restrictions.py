@@ -38,7 +38,7 @@ def test_get_global_searchtag_restrictions(monkeypatch):
 
 @pytest.mark.usefixtures('db')
 def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
-    # Setup the Global STBL
+    # Setup the globally restricted tags list
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))

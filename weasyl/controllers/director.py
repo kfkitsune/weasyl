@@ -50,7 +50,7 @@ def directorcontrol_emailblacklist_post_(request):
 
 @director_only
 def directorcontrol_globaltagrestrictions_get_(request):
-    # Get the global blacklist information and render to the template
+    # Get the globally restricted tag information and render to the template
     tags = searchtag.get_global_tag_restrictions(request.userid)
     return Response(d.webpage(request.userid, "directorcontrol/globaltagrestrictions.html", (
         tags,
