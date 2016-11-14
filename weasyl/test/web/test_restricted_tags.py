@@ -1,5 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
+import re
+
 import pytest
 
 from libweasyl import staff
@@ -98,10 +100,10 @@ def test_view_inuse_user_and_global_restricted_tags_page(restricted_tags):
     _, user_cookie, _, director_cookie = restricted_tags
 
     resp = app.get('/control/tagrestrictions', headers={'Cookie': user_cookie})
-    assert resp.html.find(id='tags-textarea').contents[0].strip() == tag_user
+    assert resp.html.find(id='tags-textarea').string == tag_user
 
     resp = app.get('/directorcontrol/globaltagrestrictions', headers={'Cookie': director_cookie})
-    assert resp.html.find(id='tags-textarea').contents[0].strip() == tag_global
+    assert resp.html.find(id='tags-textarea').string == tag_global
 
 
 @pytest.mark.usefixtures('db')
@@ -125,9 +127,9 @@ def test_adding_user_and_global_restricted_tags(restricted_tags):
 
     # Set the tags and verify that they were set correctly
     resp = app.post('/control/tagrestrictions', {'tags': 'user_restricted_tag_xyzzy2'}, headers={'Cookie': user_cookie})
-    assert resp.html.find(id='tags-textarea').contents[0].strip() == "user_restricted_tag_xyzzy2"
+    assert resp.html.find(id='tags-textarea').string == "user_restricted_tag_xyzzy2"
     resp = app.post('/directorcontrol/globaltagrestrictions', {'tags': 'global_restricted_tag_xyzzy2'}, headers={'Cookie': director_cookie})
-    assert resp.html.find(id='tags-textarea').contents[0].strip() == "global_restricted_tag_xyzzy2"
+    assert resp.html.find(id='tags-textarea').string == "global_restricted_tag_xyzzy2"
     assert resp.html.find("form", class_="form skinny clear").table.tbody.tr.td.string == "testdirector"
 
 
@@ -140,7 +142,18 @@ def test_attempt_adding_restricted_tags_to_submissions(restricted_tags, no_view_
     # Content items can be reused between tested functions
     submission = db_utils.create_submission(userid_owner)
     character = db_utils.create_character(userid_owner)
-    journal = db_utils.create_journal(userid_owner)
+    # Manually create the journal, because db_utils doesn't make it right for webtest (for some reason)
+    _JOURNAL = {
+        "title": "test",
+        "rating": 10,
+        "content": "test",
+        "tags": "qwe asd",
+    }
+    regex_pattern = re.compile(r"(?:.*journal\/)(\d+)(?:.*)$")
+    resp = app.post('/submit/journal', _JOURNAL, headers={'Cookie': owner_cookie}).follow()
+    # This is our journalid
+    journal = re.match(regex_pattern, resp.request.url).group(1)
+
     """ Other users tests"""
     # Other users cannot add tags which have been user-restricted
     resp = app.post('/submit/tags', {'submitid': submission, 'tags': tag_user}, headers={'Cookie': tag_adder_cookie}).follow()
