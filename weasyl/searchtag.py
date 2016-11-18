@@ -279,10 +279,8 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
 
     # Return dict with any tag titles as a string that failed to be added or removed
     if add_failure_restricted_tags or remove_failure_owner_set_tags:
-        return {
-            "add_failure_restricted_tags": ", ".join({tag.title for tag in added if tag.tagid in add_failure_restricted_tags}),
-            "remove_failure_owner_set_tags": ", ",join({tag.title for tag in removed if tag.tagid in remove_failure_owner_set_tags})
-        }
+        return {"add_failure_restricted_tags": ", ".join({tag.title for tag in added if tag.tagid in add_failure_restricted_tags}),
+                "remove_failure_owner_set_tags": ", ",join({tag.title for tag in removed if tag.tagid in remove_failure_owner_set_tags})}
 
 
 def tag_history(submitid):
