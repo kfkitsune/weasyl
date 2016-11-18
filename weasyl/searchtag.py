@@ -168,6 +168,26 @@ def is_tag_restriction_pattern_valid(text):
 
 
 def associate(userid, tags, submitid=None, charid=None, journalid=None):
+    """
+    Associates searchtags with a content item.
+
+    Parameters:
+        userid: The userid of the user associating tags
+        tags: A set of tags
+        submitid: The ID number of a submission content item to associate
+        ``tags`` to. (default: None)
+        charid: The ID number of a character content item to associate
+        ``tags`` to. (default: None)
+        journalid: The ID number of a journal content item to associate
+        ``tags`` to. (default: None)
+
+    Returns:
+        A dict containing two elements. 1) ``add_failure_restricted_tags``, which contains a comma separated
+        string of tag titles which failed to be added to the content item due to the user or global restricted
+        tag lists; and 2) ``remove_failure_owner_set_tags``, which contains a comma separated string of tag
+        titles which failed to be removed from the content item due to the owner of the afformentioned item
+        prohibiting users from removing tags set by the content owner.
+    """
     targetid = d.get_targetid(submitid, charid, journalid)
 
     # Assign table, feature, ownerid
@@ -204,14 +224,21 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
 
+    # Track which tags fail to be added or removed to later notify the user (Note: These are tagids at this stage)
+    add_failure_restricted_tags = None
+    remove_failure_owner_set_tags = None
+
     # If the modifying user is not the owner of the object, and is not staff, check user/global restriction lists
     if userid != ownerid and userid not in staff.MODS:
         restricted_tags = query_user_restricted_tags(ownerid) + query_global_restricted_tags()
+        # Find the intersection, keeping only elements from ``added`` which are in ``restricted_tags``
+        add_failure_tags_restricted = added & restricted_tags
         added -= remove_restricted_tags(restricted_tags, query)
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
         existing_artist_tags = {t.tagid for t in existing if 'a' in t.settings}
+        remove_failure_owner_set_tags = removed & existing_artist_tags
         removed.difference_update(existing_artist_tags)
         entered_tagids.update(existing_artist_tags)
 
@@ -249,6 +276,11 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         "%stag.%s.%s.log" % (m.MACRO_SYS_LOG_PATH, feature, d.get_timestamp()),
         "-%sID %i  -T %i  -UID %i  -X %s\n" % (feature[0].upper(), targetid, d.get_time(), userid,
                                                " ".join(tags)))
+
+    # Return dict with any tag titles as a string that failed to be added or removed
+    if add_failure_restricted_tags or remove_failure_owner_set_tags:
+        return {"add_failure_restricted_tags": ", ".join({tag.title for tag in added if tag.tagid in add_failure_restricted_tags}),
+                "remove_failure_owner_set_tags": ", ".join({tag.title for tag in removed if tag.tagid in remove_failure_owner_set_tags})}
 
 
 def tag_history(submitid):
