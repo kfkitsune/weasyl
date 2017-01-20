@@ -3,14 +3,21 @@ Module for handling 2FA-related functions.
 """
 from __future__ import absolute_import
 
-import arrow
-import qrcode
-import pyotp
+import base64
 
+import arrow
+import pyotp
+import qrcode
+import qrcode.image.svg
+
+from libweasyl import security
 from weasyl import define as d
 
+# Number of recovery codes to provide the user
+_TFA_RECOVERY_CODES = 10
 
-def tfa_init(userid):
+
+def init(userid):
     """
     Initialize 2FA for a user by generating and returning a 2FA secret key.
 
@@ -20,15 +27,21 @@ def tfa_init(userid):
     Parameters:
         userid: The userid of the calling user.
 
-    Returns:
+    Returns: A tuple in the format of (tfa_secret, tfa_qrcode), where:
         tfa_secret: The 16 character pyotp-generated secret.
-        tfa_qrcode: Base64-encoded QRcode containing necessary information for
-        Google Authenticator use.
+        tfa_qrcode: Base64-encoded QRcode (SVG/PNG?) containing necessary information for
+        Google Authenticator use. This is used in a dataURI to display an ephemeral qrcode.
     """
-    pass
+    tfa_secret = pyotp.random_base32()
+    totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
+    # Generate the QRcode
+    qrc_factory = qrcode.image.svg.SvgPathFillImage
+    tfa_qrcode = base64.b64encode(qrcode.make(totp_uri, image_factory=qrc_factory))
+    # Return the tuple
+    return tfa_secret, tfa_qrcode
 
 
-def tfa_init_verify(userid, tfa_secret, tfa_response):
+def init_verify(userid, tfa_secret, tfa_response):
     """
     Verify that the user has successfuly set-up 2FA, and enable 2FA.
 
@@ -45,10 +58,15 @@ def tfa_init_verify(userid, tfa_secret, tfa_response):
     Returns: False if the verification failed, otherwise a list of recovery codes
     generated from tfa_generate_recovery_codes().
     """
-    pass
+    totp = pyotp.TOTP(tfa_secret)
+    if totp.verify(tfa_secret):
+        # TODO: Complete this section.
+        pass
+    else:
+        return False
 
 
-def tfa_verify(userid, tfa_response):
+def verify(userid, tfa_response):
     """
     Verify a 2FA-enabled user's 2FA challenge-response against the stored
     2FA secret.
@@ -57,11 +75,29 @@ def tfa_verify(userid, tfa_response):
         userid: The userid to compare the 2FA challenge-response against.
         tfa_response: User-supplied response. May be either the Google Authenticator
         (or other app) supplied code, or a recovery code
+
+    Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
-    pass
+    tfa_secret = d.engine.execute("""
+        SELECT twofa_secret
+        FROM login
+        WHERE userid = (%(userid)s)
+    """, userid=userid).scalar()
+    # Validate supplied 2FA response versus calculated current TOTP value.
+    totp = pytop.TOTP(tfa_secret)
+    if totp.verify(tfa_response):
+        return True
+    else:
+        # TOTP verification failed, check recovery code
+        if is_recovery_code_valid(userid, tfa_response):
+            # Recovery code was valid, and consumed
+            return True
+        else:
+            # Received input was not a valid TOTP response, and was not a valid recovery code
+            return False
 
 
-def tfa_generate_recovery_codes(userid):
+def generate_recovery_codes(userid):
     """
     Generate a fresh set of 2FA recovery codes for a user.
 
@@ -73,12 +109,29 @@ def tfa_generate_recovery_codes(userid):
         userid: The userid to create new recovery codes for.
 
     Returns:
-        A list of recovery codes linked to the passed userid.
+        A set of recovery codes linked to the passed userid.
     """
-    pass
+    # First, purge existing recovery codes (if any).
+    d.engine.execute("""
+        DELETE FROM recovery_codes
+        WHERE userid = (%(userid)s);
+    """, userid=userid)
+    # Next, generate the recovery codes, up to the defined maximum value
+    for i in range(0, _TFA_RECOVERY_CODES):
+        tfa_recovery_codes |= {security.generate_key(20)}
+    # Then, insert the codes into the table
+    ## TODO: Figure out how to do this in one shot instead of looping the codes; this feels inelegant.
+    for code in tfa_recovery_codes:
+        d.engine.execute("""
+            INSERT INTO twofa_recovery_codes (userid, recovery_code)
+            VALUES ( (%(userid)s), (%(code)s)
+        """, userid=userid, code=code)
+    # Finally, return the set of recovery codes to the calling function.
+    return tfa_recovery_codes
 
 
-def tfa_is_recovery_code_valid(userid, tfa_code):
+
+def is_recovery_code_valid(userid, tfa_code):
     """
     Checks the recovery code table for a valid recovery code.
 
@@ -91,10 +144,20 @@ def tfa_is_recovery_code_valid(userid, tfa_code):
 
     Returns: Boolean True if the code was valid and has been consumed, Boolean False, otherwise.
     """
-    pass
+    # Check to see if the provided code is valid, and consume if so
+    tfa_rc = d.engine.execute("""
+        DELETE FROM recovery_codes
+        WHERE userid = (%(userid)s), recovery_code = (%(recovery_code)s)
+        RETURNING recovery_code
+    """, userid=userid, recovery_code=tfa_code).scalar()
+    # If `tfa_rc` is not None, the code was valid and consumed.
+    if tfa_rc:
+        return True
+    else:
+        return False
 
 
-def tfa_deactivate(userid):
+def deactivate(userid):
     """
     Deactivate 2FA for a specified user.
 
@@ -106,4 +169,16 @@ def tfa_deactivate(userid):
 
     Returns: Nothing.
     """
-    pass
+    # Atomically disable 2FA to prevent either step from failing and resulting in an inconsistent state.
+    d.engine.execute("""
+        BEGIN;
+        
+        UPDATE login
+        SET twofa_secret = NULL
+        WHERE userid = (%(userid)s);
+        
+        DELETE FROM recovery_codes
+        WHERE userid = (%(userid)s);
+        
+        COMMIT;
+    """, userid=userid)
