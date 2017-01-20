@@ -46,7 +46,7 @@ def signin_post_(request):
         # Password authentication passed, but user has 2FA set, so verify second factor (Also set SFW mode now)
         if form.sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
-            index.template_fields.invalidate(logid)
+        index.template_fields.invalidate(logid)
         raise Response(define.webpage(request.userid, "etc/2fa_auth.html", [form.referer]))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
