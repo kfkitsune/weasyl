@@ -49,6 +49,7 @@ def authenticate_bcrypt(username, password, session=True):
     - "address"
     - "banned"
     - "suspended"
+    - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
     """
     # Check that the user entered potentially valid values for `username` and
     # `password` before attempting to authenticate them
