@@ -124,7 +124,7 @@ def generate_recovery_codes(userid):
     for code in tfa_recovery_codes:
         d.engine.execute("""
             INSERT INTO twofa_recovery_codes (userid, recovery_code)
-            VALUES ( (%(userid)s), (%(code)s)
+            VALUES ( (%(userid)s), (%(code)s) )
         """, userid=userid, code=code)
     # Finally, return the set of recovery codes to the calling function.
     return tfa_recovery_codes
