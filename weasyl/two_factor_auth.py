@@ -12,6 +12,7 @@ import qrcode.image.svg
 
 from libweasyl import security
 from weasyl import define as d
+from weasyl import login
 
 # Number of recovery codes to provide the user
 _TFA_RECOVERY_CODES = 10
@@ -55,13 +56,18 @@ def init_verify(userid, tfa_secret, tfa_response):
         verification page's form information.
         tfa_response: The 2FA challenge-response code to verify against tfa_secret.
 
-    Returns: False if the verification failed, otherwise a list of recovery codes
+    Returns: False if the verification failed, otherwise a set of recovery codes
     generated from tfa_generate_recovery_codes().
     """
     totp = pyotp.TOTP(tfa_secret)
-    if totp.verify(tfa_secret):
-        # TODO: Complete this section.
-        pass
+    # If the provided `tfa_response` matches the TOTP value, add the value and return recovery codes
+    if totp.verify(tfa_response):
+        d.engine.execute("""
+            UPDATE login
+            SET twofa_secret = (%(tfa_secret)s)
+            WHERE userid = (%(userid)s)
+        """)
+        return generate_recovery_codes(userid)
     else:
         return False
 
@@ -78,17 +84,17 @@ def verify(userid, tfa_response):
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
-    tfa_secret = d.engine.execute("""
+    tfa_secret = d.engine.scalar("""
         SELECT twofa_secret
         FROM login
         WHERE userid = (%(userid)s)
-    """, userid=userid).scalar()
+    """, userid=userid)
     # Validate supplied 2FA response versus calculated current TOTP value.
     totp = pytop.TOTP(tfa_secret)
     if totp.verify(tfa_response):
         return True
+    # TOTP verification failed, check recovery code
     else:
-        # TOTP verification failed, check recovery code
         if is_recovery_code_valid(userid, tfa_response):
             # Recovery code was valid, and consumed
             return True
@@ -121,11 +127,15 @@ def generate_recovery_codes(userid):
         tfa_recovery_codes |= {security.generate_key(20)}
     # Then, insert the codes into the table
     ## TODO: Figure out how to do this in one shot instead of looping the codes; this feels inelegant.
-    for code in tfa_recovery_codes:
-        d.engine.execute("""
-            INSERT INTO twofa_recovery_codes (userid, recovery_code)
-            VALUES ( (%(userid)s), (%(code)s) )
-        """, userid=userid, code=code)
+    #for code in tfa_recovery_codes:
+        #d.engine.execute("""
+        #    INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        #    VALUES ( (%(userid)s), (%(code)s) )
+        #""", userid=userid, code=code)
+    d.engine.execute("""
+        INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        SELECT (%(userid)s), unnest( (%(tfa_recovery_codes)s) )
+    """, userid=userid, tfa_recovery_codes=list(tfa_recovery_codes))
     # Finally, return the set of recovery codes to the calling function.
     return tfa_recovery_codes
 
@@ -145,11 +155,11 @@ def is_recovery_code_valid(userid, tfa_code):
     Returns: Boolean True if the code was valid and has been consumed, Boolean False, otherwise.
     """
     # Check to see if the provided code is valid, and consume if so
-    tfa_rc = d.engine.execute("""
+    tfa_rc = d.engine.scalar("""
         DELETE FROM recovery_codes
         WHERE userid = (%(userid)s), recovery_code = (%(recovery_code)s)
         RETURNING recovery_code
-    """, userid=userid, recovery_code=tfa_code).scalar()
+    """, userid=userid, recovery_code=tfa_code)
     # If `tfa_rc` is not None, the code was valid and consumed.
     if tfa_rc:
         return True
@@ -169,7 +179,7 @@ def deactivate(userid):
 
     Returns: Nothing.
     """
-    # Atomically disable 2FA to prevent either step from failing and resulting in an inconsistent state.
+    # Atomically disable 2FA to prevent either step from failing and resulting in a (potentially) inconsistent state.
     d.engine.execute("""
         BEGIN;
         
