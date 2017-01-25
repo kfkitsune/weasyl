@@ -104,7 +104,6 @@ def authenticate_bcrypt(username, password, session=True):
         if TWOFA:
             # Save to the user's session that we successfully passed password authentication w/time passed
             sess = d.get_weasyl_session()
-            sess.password_authenticated = True
             sess.password_authenticated_userid = USERID
             sess.password_authenticated_time = arrow.now().timestamp
             sess.save = True

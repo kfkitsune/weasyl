@@ -7,7 +7,7 @@ from pyramid.httpexceptions import (
 from pyramid.response import Response
 
 from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword
+    premiumpurchase, profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -47,7 +47,13 @@ def signin_post_(request):
         if form.sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         index.template_fields.invalidate(logid)
-        raise Response(define.webpage(request.userid, "etc/2fa_auth.html", [form.referer]))
+        # Extract the user from the session
+        sess = d.get_weasyl_session()
+        tfa_userid = sess.password_authenticated_userid
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [d.get_display_name(tfa_userid), form.referer]))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
     elif logerror == "banned":
@@ -69,6 +75,64 @@ def signin_post_(request):
         return Response("IP ADDRESS TEMPORARILY BLOCKED")
 
     return Response(define.errorpage(request.userid))
+
+
+@guest_required
+def signin_2fa_auth_get_(request):
+    sess = d.get_weasyl_session()
+    session_life = arrow.now().timestamp - sess.password_authenticated_time
+    # Only render page if the password has been authenticated
+    if not sess.password_authenticated_userid:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    # Maximum secondary authentication time: 5 minutes
+    if session_life > 300:
+        sess.password_authenticate_time = None
+        sess.password_authenticated_userid = None
+        sess.save = True
+        return Response(define.errorpage(
+            request.userid,
+            "Your login session has timed out. Please try logging in again.",
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+    else:
+        tfa_userid = sess.password_authenticated_userid
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [d.get_display_name(tfa_userid), request.params["referer"]]))
+
+
+@guest_required
+@token_checked
+def signin_2fa_auth_post_(request):
+    sess = d.get_weasyl_session()
+    session_life = arrow.now().timestamp - sess.password_authenticated_time
+    tfa_userid = sess.password_authenticated_userid
+    # Only render page if the password has been authenticated
+    if not tfa_userid:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    # Maximum secondary authentication time: 5 minutes
+    if session_life > 300:
+        sess.password_authenticate_time = None
+        sess.password_authenticated_userid = None
+        sess.save = True
+        return Response(define.errorpage(
+            request.userid,
+            "Your authentication session has timed out. Please try logging in again.",
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+    elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
+        # 2FA passed, so login and cleanup.
+        login.signin(tfa_userid)
+        sess.password_authenticate_time = None
+        sess.password_authenticated_userid = None
+        sess.save = True
+        ref = request.params["referer"] or "/"
+        raise HTTPSeeOther(location=ref)
+    else:
+        # 2FA failed; redirect to 2FA input page
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [d.get_display_name(tfa_userid), request.params["referer"]]))
 
 
 @login_required

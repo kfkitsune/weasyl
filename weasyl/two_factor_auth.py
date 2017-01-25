@@ -42,13 +42,13 @@ def init(userid):
     return tfa_secret, tfa_qrcode
 
 
-def init_verify(userid, tfa_secret, tfa_response):
+def init_verify_tfa(userid, tfa_secret, tfa_response):
     """
-    Verify that the user has successfuly set-up 2FA, and enable 2FA.
+    Verify that the user has successfully set-up 2FA in Google Authenticator
+    (or similar), and generate recovery codes for the user.
 
-    Upon verification by pyotp that the 2FA response corresponds to the 2FA
-    secret, store the 2FA secret in the user's login record, thus enabling
-    2FA for the user.
+    This function is part one of two in enabling 2FA. Successful verification of this phase
+    ensures that the user's authentication app is working correctly.
 
     Parameters:
         userid: The userid of the calling user.
@@ -56,8 +56,35 @@ def init_verify(userid, tfa_secret, tfa_response):
         verification page's form information.
         tfa_response: The 2FA challenge-response code to verify against tfa_secret.
 
-    Returns: False if the verification failed, otherwise a set of recovery codes
-    generated from tfa_generate_recovery_codes().
+    Returns:
+        - Boolean False if the verification failed; or
+        - A tuple in the form of (tfa_secret, generate_recovery_codes(userid)) where:
+            tfa_secret: Is the verified working TOTP secret key
+            generate_recovery_codes(userid): Is a list of recovery codes bound to the user.
+    """
+    totp = pyotp.TOTP(tfa_secret)
+    # If the provided `tfa_response` matches the TOTP value, add the value and return recovery codes
+    if totp.verify(tfa_response):
+        return tfa_secret, generate_recovery_codes(userid)
+    else:
+        return False
+
+
+def activate(userid, tfa_secret, tfa_response):
+    """
+    Fully activate 2FA for a given user account, after final validation of the TOTP secret.
+
+    This function is part two--the final part--in enabling 2FA. Passing this step ensures that
+    the user has been presented the opportunity to save recovery keys for their account.
+
+    Parameters:
+        userid: The userid of the calling user.
+        tfa_secret: The 2FA secret generated from tfa_init(); retrieved from the
+        verification page's form information.
+        tfa_response: The 2FA challenge-response code to verify against tfa_secret.
+
+    Returns: Boolean True if the `tfa_response` corresponds with `tfa_secret`, thus enabling 2FA,
+        otherwise Boolean False indicating 2FA has not been enabled.
     """
     totp = pyotp.TOTP(tfa_secret)
     # If the provided `tfa_response` matches the TOTP value, add the value and return recovery codes
@@ -67,7 +94,7 @@ def init_verify(userid, tfa_secret, tfa_response):
             SET twofa_secret = (%(tfa_secret)s)
             WHERE userid = (%(userid)s)
         """)
-        return generate_recovery_codes(userid)
+        return True
     else:
         return False
 
@@ -167,7 +194,7 @@ def is_recovery_code_valid(userid, tfa_code):
         return False
 
 
-def deactivate(userid):
+def deactivate(userid, tfa_response):
     """
     Deactivate 2FA for a specified user.
 
@@ -176,19 +203,26 @@ def deactivate(userid):
 
     Parameters:
         userid: The user for which 2FA should be disabled.
+        tfa_response: User-supplied response. May be either the Google Authenticator
+        (or other app) supplied code, or a recovery code.
 
-    Returns: Nothing.
+    Returns: Boolean True if 2FA was successfully disabled, otherwise Boolean False if the
+    verification of `tfa_response` failed (bad challenge-response or invalid recovery code).
     """
-    # Atomically disable 2FA to prevent either step from failing and resulting in a (potentially) inconsistent state.
-    d.engine.execute("""
-        BEGIN;
-        
-        UPDATE login
-        SET twofa_secret = NULL
-        WHERE userid = (%(userid)s);
-        
-        DELETE FROM recovery_codes
-        WHERE userid = (%(userid)s);
-        
-        COMMIT;
-    """, userid=userid)
+    if verify(userid, tfa_response):
+        # Atomically disable 2FA to prevent either step from failing and resulting in a (potentially) inconsistent state.
+        d.engine.execute("""
+            BEGIN;
+
+            UPDATE login
+            SET twofa_secret = NULL
+            WHERE userid = (%(userid)s);
+
+            DELETE FROM recovery_codes
+            WHERE userid = (%(userid)s);
+
+            COMMIT;
+        """, userid=userid)
+        return True
+    else:
+        return False

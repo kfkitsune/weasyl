@@ -1,0 +1,20 @@
+$def with (username, referer)
+$:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
+
+<div class="content form clear">
+  <form method="POST" class="form skinny clear" action="/signin/tfa_auth">
+    $:{CSRF()}
+    <h3>Two-Factor Authentication</h3>
+    <p>Username: ${username}</p>
+    <p>
+      The Weasyl account identified above has two-factor authentication enabled.
+      Enter the current time-based token for this user below. Or, if you no longer
+      have access to the authenticator for this account, enter one of your twenty-character
+      recovery codes instead. <em>(Be sure to keep track of used codes.)</em>
+    </p>
+    <label for="tfa-response">Time-based Token or Recovery Code</label>
+    <input type="text" id="tfa-response" maxlength="20" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" required />
+
+    <input type="hidden" name="referer" value="${referer}" />
+  </form>
+</div>
