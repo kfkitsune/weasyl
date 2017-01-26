@@ -23,7 +23,9 @@ $:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Setti
       code to disable two-factor authentication).
     </p>
     <h3>Scan with Google Authenticator...</h3>
-    <img src="data:image/svg+xml;base64,${qrcode}" />
+    <div>
+      ${qrcode}
+    </div>
     <h3>... or manually enter your secret key</h3>
     <p>
       Your TOTP key is: ${tfa_secret}
