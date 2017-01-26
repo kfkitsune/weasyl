@@ -33,14 +33,14 @@ def test_get_number_of_recovery_codes():
         DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s)
     """, userid=user_id)
-    assert tfa.get_number_of_recovery_codes(userid) == 0
+    assert tfa.get_number_of_recovery_codes(user_id) == 0
 
 
 @pytest.mark.usefixtures('db')
 def test_generate_recovery_codes():
     user_id = db_utils.create_user()
 
-    recovery_codes = tfa.generate_recovery_codes(userid)
+    recovery_codes = tfa.generate_recovery_codes(user_id)
     assert len(recovery_codes) == 10
 
     query = d.engine.execute("""
@@ -54,7 +54,7 @@ def test_generate_recovery_codes():
 
 @pytest.mark.usefixtures('db')
 def test_is_recovery_code_valid():
-    user_id = db.utils.create_user()
+    user_id = db_utils.create_user()
     recovery_code = security.generate_key(20)
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
@@ -110,7 +110,7 @@ def test_init_verify_tfa():
 @pytest.mark.usefixtures('db')
 def test_activate():
     user_id = db_utils.create_user()
-    tfa_secret = pytop.random_base32()
+    tfa_secret = pyotp.random_base32()
     totp = pyotp.TOTP(tfa_secret)
 
     # Code path 1: Failed validation between tfa_secret/tfa_response
