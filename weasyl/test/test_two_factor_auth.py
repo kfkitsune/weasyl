@@ -4,8 +4,6 @@ import base64
 
 import pyotp
 import pytest
-#import qrcode
-#import qrcode.image.svg
 from qrcodegen import QrCode
 
 from libweasyl import security
