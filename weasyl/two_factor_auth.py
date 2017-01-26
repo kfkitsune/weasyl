@@ -37,7 +37,7 @@ def init(userid):
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
     qrc_factory = qrcode.image.svg.SvgPathFillImage
-    tfa_qrcode = base64.b64encode(qrcode.make(totp_uri, image_factory=qrc_factory))
+    tfa_qrcode = qrcode.make(totp_uri, image_factory=qrc_factory)
     # Return the tuple
     return tfa_secret, tfa_qrcode
 
