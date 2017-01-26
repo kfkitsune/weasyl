@@ -11,7 +11,7 @@ $:{RENDER("common/stage_title.html", ["Disable Two-Factor Authentication", "Sett
   <form method="POST" class="form skinny clear" action="/tfa/tfa_disable">
     <label for="disable-tfa">Time-based token or Recovery code</label>
     <input type="text" class="input" maxlength="20" id="disable-tfa" name="tfaresponse" />
-    <input class="checkbox" type="checkbox" name="verify2fdisable"><label for="verify-enable">Disable Two-Factor Authentication</label></input>
+    <input class="checkbox" type="checkbox" id="verify-disable" name="verify"><label for="verify-disable">Disable Two-Factor Authentication</label></input>
 
     $:{CSRF()}
     <div style="padding-top: 1em;">
