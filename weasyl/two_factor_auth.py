@@ -87,7 +87,7 @@ def activate(userid, tfa_secret, tfa_response):
         otherwise Boolean False indicating 2FA has not been enabled.
     """
     totp = pyotp.TOTP(tfa_secret)
-    # If the provided `tfa_response` matches the TOTP value, add the value and return recovery codes
+    # If the provided `tfa_response` matches the TOTP value, write the 2FA secret into `login`, activating 2FA for `userid`
     if totp.verify(tfa_response):
         d.engine.execute("""
             UPDATE login
