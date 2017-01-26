@@ -36,8 +36,7 @@ def init(userid):
     tfa_secret = pyotp.random_base32()
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
-    qrc_factory = qrcode.image.svg.SvgPathFillImage
-    tfa_qrcode = qrcode.make(totp_uri, image_factory=qrc_factory)
+    tfa_qrcode = base64.b64encode(qrcode.make(totp_uri))
     # Return the tuple
     return tfa_secret, tfa_qrcode
 
@@ -167,7 +166,8 @@ def generate_recovery_codes(userid):
         WHERE userid = (%(userid)s);
     """, userid=userid)
     # Next, generate the recovery codes, up to the defined maximum value
-    for i in range(0, _TFA_RECOVERY_CODES):
+    tfa_recovery_codes = {security.generate_key(20)}
+    for i in range(0, _TFA_RECOVERY_CODES - 1):
         tfa_recovery_codes |= {security.generate_key(20)}
     # Then, insert the codes into the table
     ## TODO: Figure out how to do this in one shot instead of looping the codes; this feels inelegant.
