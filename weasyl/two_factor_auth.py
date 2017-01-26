@@ -7,8 +7,6 @@ import base64
 
 import arrow
 import pyotp
-#import qrcode
-#import qrcode.image.svg
 from qrcodegen import QrCode
 
 from libweasyl import security
@@ -37,7 +35,6 @@ def init(userid):
     tfa_secret = pyotp.random_base32()
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
-    #tfa_qrcode = base64.b64encode(qrcode.make(totp_uri))
     qr = QrCode.encode_text(totp_uri, QrCode.Ecc.MEDIUM)
     tfa_qrcode = qr.to_svg_str(4)
     # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
