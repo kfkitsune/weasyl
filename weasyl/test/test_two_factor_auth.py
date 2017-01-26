@@ -4,8 +4,9 @@ import base64
 
 import pyotp
 import pytest
-import qrcode
-import qrcode.image.svg
+#import qrcode
+#import qrcode.image.svg
+from qrcodegen import QrCode
 
 from libweasyl import security
 from weasyl import define as d
@@ -81,7 +82,8 @@ def test_init():
     tfa_secret, tfa_qrcode = tfa.init(user_id)
 
     computed_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(user_id), issuer_name="Weasyl")
-    computed_qrcode = base64.b64encode(qrcode.make(computed_uri))
+    qr = QrCode.encode_text(computed_uri, QrCode.Ecc.MEDIUM)
+    computed_qrcode = qr.to_svg_str(4)
     print computed_qrcode
     # The QRcode we make locally should match that from init()
     assert tfa_qrcode == computed_qrcode
