@@ -1,0 +1,42 @@
+$def with (tfa_secret, qrcode)
+$:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Settings"])}
+
+<div class="content form clear">
+  <form method="POST" class="form skinny clear" action="/tfa/tfa_init_verify">
+    <h3>Two-Factor Authentication</h3>
+    <p>Username: $:{LOGIN()}</p>
+    <p>
+      You are about to enable two-factor authentication for the Weasyl account identified above.
+      You will need a compatible app such as Google Authenticator to generate time-based tokens
+      each time you log into your Weasyl account.
+    </p>
+    <p>
+      Upon successful verification, you will be provided with ten recovery codes. <em>Print these
+      codes, and secure them as you would your password.</em> In the event you lose access to your
+      authenticator app, you will need these codes to regain access to your Weasyl account. Recovery
+      codes can be refreshed at any time from your settings page.
+    </p>
+    <p>
+      <b><em>Warning:</em></b> For security reasons, Weasyl staff will be unable to assist you if
+      you lose access to your recovery codes. We advise never using more than eight codes, as you will
+      need two to disable two-factor authentication from a logged-out state (one code to log in, one
+      code to disable two-factor authentication).
+    </p>
+    <h3>Scan with Google Authenticator...</h3>
+    <img src="data:image/svg+xml;base64,${qrcode}" />
+    <h3>... or manually enter your secret key</h3>
+    <p>
+      Your TOTP key is: ${tfa_secret}
+    </p>
+    <label for="tfa-init-verify">Enter Two-factor token</label>
+    <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" />
+
+    <input type="hidden" value="${tfa_secret}" name="tfasecret" />
+    $:{CSRF()}
+
+    <div style="padding-top: 1em;">
+      <button class="button negative" name="action" value="cancel">Cancel</button>
+      <button class="button positive" name="action" value="continue">Continue</button>
+    </div>
+  </form>
+</div>
