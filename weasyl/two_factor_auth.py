@@ -7,8 +7,9 @@ import base64
 
 import arrow
 import pyotp
-import qrcode
-import qrcode.image.svg
+#import qrcode
+#import qrcode.image.svg
+from qrcodegen import QrCode
 
 from libweasyl import security
 from weasyl import define as d
@@ -36,8 +37,10 @@ def init(userid):
     tfa_secret = pyotp.random_base32()
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
-    tfa_qrcode = base64.b64encode(qrcode.make(totp_uri))
-    # Return the tuple
+    #tfa_qrcode = base64.b64encode(qrcode.make(totp_uri))
+    qr = QrCode.encode_text(totp_uri, QrCode.Ecc.MEDIUM)
+    tfa_qrcode = qr.to_svg_str(4)
+    # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
     return tfa_secret, tfa_qrcode
 
 
@@ -201,7 +204,7 @@ def is_recovery_code_valid(userid, tfa_code):
     # Check to see if the provided code is valid, and consume if so
     tfa_rc = d.engine.scalar("""
         DELETE FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s), recovery_code = (%(recovery_code)s)
+        WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
         RETURNING recovery_code
     """, userid=userid, recovery_code=tfa_code)
     # If `tfa_rc` is not None, the code was valid and consumed.
