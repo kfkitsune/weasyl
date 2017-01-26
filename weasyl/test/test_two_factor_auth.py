@@ -50,7 +50,7 @@ def test_generate_recovery_codes():
         WHERE userid = (%(userid)s)
     """, userid=user_id).fetchall()
     for code in query:
-        assert code in recovery_codes
+        assert code['recovery_code'] in recovery_codes
 
 
 @pytest.mark.usefixtures('db')
@@ -69,7 +69,7 @@ def test_is_recovery_code_valid():
     assert not tfa.is_recovery_code_valid(user_id, recovery_code)
 
     # Code path 2.1: Recovery code is invalid (code was not a real code)
-    assert tfa.is_recovery_code_valid(user_id, "a" * 19)
+    assert not tfa.is_recovery_code_valid(user_id, "a" * 19)
 
 
 
@@ -90,7 +90,6 @@ def test_init():
     # The tfa_secret from init() should be 16 characters, and work if passed in to pyotp.TOTP.now()
     assert len(tfa_secret) == 16
     assert len(pyotp.TOTP(tfa_secret).now()) == 6
-    assert 0
 
     
 @pytest.mark.usefixtures('db')
