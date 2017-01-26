@@ -23,12 +23,12 @@ def test_get_number_of_recovery_codes():
         FROM twofa_recovery_codes
         WHERE userid = (%(userid)s)
     """, userid=user_id)
-    assert tfa.get_number_of_recovery_codes(userid) == 0
+    assert tfa.get_number_of_recovery_codes(user_id) == 0
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
         VALUES ( (%(userid)s), (%(code)s) )
     """, userid=user_id, code=security.generate_key(20))
-    assert tfa.get_number_of_recovery_codes(userid) == 1
+    assert tfa.get_number_of_recovery_codes(user_id) == 1
     d.engine.execute("""
         DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s)
@@ -81,18 +81,16 @@ def test_init():
     tfa_secret, tfa_qrcode = tfa.init(user_id)
 
     computed_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(user_id), issuer_name="Weasyl")
-    qr_factory = qrcode.image.svg.SvgPathFillImage
-    computed_qrcode = qrcode.make(computed_uri, image_factory=qr_factory)
-    print(computed_qrcode)
-
+    computed_qrcode = base64.b64encode(qrcode.make(computed_uri))
+    print computed_qrcode
     # The QRcode we make locally should match that from init()
-    assert tfa_qrcode == computed_b64_qrcode
+    assert tfa_qrcode == computed_qrcode
     # The tfa_secret from init() should be 16 characters, and work if passed in to pyotp.TOTP.now()
     assert len(tfa_secret) == 16
     assert len(pyotp.TOTP(tfa_secret).now()) == 6
     assert 0
 
-
+    
 @pytest.mark.usefixtures('db')
 def test_init_verify_tfa():
     user_id = db_utils.create_user()
@@ -126,7 +124,7 @@ def test_activate():
 
     # Code path 2: Validation successful, and tfa_secret written into user's `login` record
     tfa_response = totp.now()
-    assert tfa.activate(userid, tfa_secret, tfa_response)
+    assert tfa.activate(user_id, tfa_secret, tfa_response)
     assert tfa_secret == d.engine.scalar("""
         SELECT twofa_secret
         FROM login
