@@ -82,13 +82,15 @@ def test_init():
 
     computed_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(user_id), issuer_name="Weasyl")
     qr_factory = qrcode.image.svg.SvgPathFillImage
-    computed_b64_qrcode = base64.b64encode(qrcode.make(computed_uri, image_factory=qr_factory))
+    computed_qrcode = qrcode.make(computed_uri, image_factory=qr_factory)
+    print(computed_qrcode)
 
     # The QRcode we make locally should match that from init()
     assert tfa_qrcode == computed_b64_qrcode
     # The tfa_secret from init() should be 16 characters, and work if passed in to pyotp.TOTP.now()
     assert len(tfa_secret) == 16
     assert len(pyotp.TOTP(tfa_secret).now()) == 6
+    assert 0
 
 
 @pytest.mark.usefixtures('db')
