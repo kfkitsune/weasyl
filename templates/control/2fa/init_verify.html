@@ -11,7 +11,7 @@ $:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authenticat
       refreshed at any time from your settings page.
     </p>
     <p>
-      <b><em>Warning:</em></b> For security reasons, Weasyl staff will be unable to assist you if
+      <strong>Warning:</strong> For security reasons, Weasyl staff will be unable to assist you if
       you lose access to your recovery codes. We advise never using more than eight codes, as you will
       need two to disable two-factor authentication from a logged-out state (one code to log in, one
       code to disable two-factor authentication).
@@ -28,7 +28,7 @@ $:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authenticat
     </p>
     <label for="tfa-init-verify">Enter Two-factor token</label>
     <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" />
-    <input class="checkbox" type="checkbox" name="verify2faenable"><label for="verify-enable">Enable Two-Factor Authentication</label></input>
+    <input class="checkbox" type="checkbox" id="verify-enable" name="verify"><label for="verify-enable">I confirm that I have printed the above recovery codes, and wish to enable 2FA</label></input>
 
     <input type="hidden" value="${tfa_secret}" name="tfasecret" />
     $:{CSRF()}
