@@ -130,6 +130,23 @@ def verify(userid, tfa_response):
             return False
 
 
+def get_number_of_recovery_codes(userid):
+    """
+    Get and return the number of remaining recovery codes for `userid`.
+    
+    Parameters:
+        userid: The userid for which to check the count of recovery codes.
+
+    Returns:
+        An integer representing the number of remaining recovery codes.
+    """
+    return d.engine.scalar("""
+        SELECT COUNT(*)
+        FROM twofa_recovery_codes
+        WHERE userid = (%(userid)s)
+    """, userid=userid)
+
+
 def generate_recovery_codes(userid):
     """
     Generate a fresh set of 2FA recovery codes for a user.
@@ -146,7 +163,7 @@ def generate_recovery_codes(userid):
     """
     # First, purge existing recovery codes (if any).
     d.engine.execute("""
-        DELETE FROM recovery_codes
+        DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s);
     """, userid=userid)
     # Next, generate the recovery codes, up to the defined maximum value
@@ -183,7 +200,7 @@ def is_recovery_code_valid(userid, tfa_code):
     """
     # Check to see if the provided code is valid, and consume if so
     tfa_rc = d.engine.scalar("""
-        DELETE FROM recovery_codes
+        DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s), recovery_code = (%(recovery_code)s)
         RETURNING recovery_code
     """, userid=userid, recovery_code=tfa_code)
@@ -218,7 +235,7 @@ def deactivate(userid, tfa_response):
             SET twofa_secret = NULL
             WHERE userid = (%(userid)s);
 
-            DELETE FROM recovery_codes
+            DELETE FROM twofa_recovery_codes
             WHERE userid = (%(userid)s);
 
             COMMIT;
