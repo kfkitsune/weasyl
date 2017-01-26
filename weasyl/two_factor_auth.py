@@ -92,7 +92,7 @@ def activate(userid, tfa_secret, tfa_response):
             UPDATE login
             SET twofa_secret = (%(tfa_secret)s)
             WHERE userid = (%(userid)s)
-        """)
+        """, tfa_secret=tfa_secret, userid=userid)
         return True
     else:
         return False
