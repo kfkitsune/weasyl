@@ -117,7 +117,7 @@ def verify(userid, tfa_response):
         WHERE userid = (%(userid)s)
     """, userid=userid)
     # Validate supplied 2FA response versus calculated current TOTP value.
-    totp = pytop.TOTP(tfa_secret)
+    totp = pyotp.TOTP(tfa_secret)
     if totp.verify(tfa_response):
         return True
     # TOTP verification failed, check recovery code
