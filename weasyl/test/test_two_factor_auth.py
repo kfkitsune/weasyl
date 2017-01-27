@@ -193,12 +193,18 @@ def test_verify():
     totp = pyotp.TOTP(tfa_secret)
     recovery_code = security.generate_key(20)
     d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=tfa_secret)
+    d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
         VALUES ( (%(userid)s), (%(code)s) )
     """, userid=user_id, code=recovery_code)
     
     # Code path 1: TOTP token matches current expected value (Successful Verification)
-    assert tfa.verify(user_id, totp.now())
+    tfa_response = totp.now()
+    assert tfa.verify(user_id, tfa_response)
     
     # Code path 1.1: TOTP token does not match current expected value (Unsuccessful Verification)
     assert not tfa.verify(user_id, "000000")
