@@ -136,7 +136,7 @@ def test_is_2fa_enabled():
     user_id = db_utils.create_user()
     
     # Code path 1: 2FA is not enabled
-    assert not tfa.is_2fa_enabled(userid)
+    assert not tfa.is_2fa_enabled(user_id)
     
     # Code path 2: 2FA is enabled
     d.engine.execute("""
@@ -144,7 +144,7 @@ def test_is_2fa_enabled():
         SET twofa_secret = (%(tfas)s)
         WHERE userid = (%(userid)s)
     """, userid=user_id, tfas=pyotp.random_base32())
-    assert tfa.is_2fa_enabled(userid)
+    assert tfa.is_2fa_enabled(user_id)
 
 
 @pytest.mark.usefixtures('db')
