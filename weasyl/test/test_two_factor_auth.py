@@ -1,4 +1,4 @@
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import base64
 
@@ -67,7 +67,7 @@ def test_is_recovery_code_valid():
     assert not tfa.is_recovery_code_valid(user_id, recovery_code)
 
     # Code path 2.1: Recovery code is invalid (code was not a real code)
-    assert not tfa.is_recovery_code_valid(user_id, "a" * 19)
+    assert not tfa.is_recovery_code_valid(user_id, "a" * 20)
 
 
 
@@ -132,10 +132,82 @@ def test_activate():
 
 
 @pytest.mark.usefixtures('db')
+def test_is_2fa_enabled():
+    user_id = db_utils.create_user()
+    
+    # Code path 1: 2FA is not enabled
+    assert not tfa.is_2fa_enabled(userid)
+    
+    # Code path 2: 2FA is enabled
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=pyotp.random_base32())
+    assert tfa.is_2fa_enabled(userid)
+
+
+@pytest.mark.usefixtures('db')
 def test_deactivate():
-    pass
+    user_id = db_utils.create_user()
+    tfa_secret = pyotp.random_base32()
+    totp = pyotp.TOTP(tfa_secret)
+    
+    # Code path 1.1: 2FA enabled, deactivated by TOTP challenge-response code
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=tfa_secret)
+    tfa_response = totp.now()
+    assert tfa.deactivate(user_id, tfa_response)
+    
+    # Code path 1.2: 2FA enabled, deactivated by recovery code
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=tfa_secret)
+    tfa_response = totp.now()
+    recovery_code = security.generate_key(20)
+    d.engine.execute("""
+        INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        VALUES ( (%(userid)s), (%(code)s) )
+    """, userid=user_id, code=recovery_code)
+    assert tfa.deactivate(user_id, recovery_code)
+    
+    # Code path 2: 2FA enabled, failed deactivation (invalid `tfa_response` (code or TOTP token))
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=tfa_secret)
+    assert not tfa.deactivate(user_id, "000000")
+    assert not tfa.deactivate(user_id, "a" * 20)
 
 
 @pytest.mark.usefixtures('db')
 def test_verify():
-    pass
+    user_id = db_utils.create_user()
+    tfa_secret = pyotp.random_base32()
+    totp = pyotp.TOTP(tfa_secret)
+    recovery_code = security.generate_key(20)
+    d.engine.execute("""
+        INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        VALUES ( (%(userid)s), (%(code)s) )
+    """, userid=user_id, code=recovery_code)
+    
+    # Code path 1: TOTP token matches current expected value (Successful Verification)
+    assert tfa.verify(user_id, totp.now())
+    
+    # Code path 1.1: TOTP token does not match current expected value (Unsuccessful Verification)
+    assert not tfa.verify(user_id, "000000")
+    
+    # Code path 2: Recovery code does not match stored value (Unsuccessful Verification)
+    assert not tfa.verify(user_id, "a" * 20)
+    
+    # Code path 2.1: Recovery code matches a stored recovery code (Successful Verification)
+    assert tfa.verify(user_id, recovery_code)
+    
+    # Code path 2.2: Recovery codes are consumed upon use (consumed in 2.1) (Unsuccessful Verification)
+    assert not tfa.verify(user_id, recovery_code)
