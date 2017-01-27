@@ -29,8 +29,9 @@ def init(userid):
 
     Returns: A tuple in the format of (tfa_secret, tfa_qrcode), where:
         tfa_secret: The 16 character pyotp-generated secret.
-        tfa_qrcode: Base64-encoded QRcode (SVG/PNG?) containing necessary information for
-        Google Authenticator use. This is used in a dataURI to display an ephemeral qrcode.
+        tfa_qrcode: A QRcode in SVG+XML format containing the information necessary to provision
+        a 2FA TOTP entry in an application such as Google Authenticator. Can be dropped as-is into
+        a template to render the QRcode.
     """
     tfa_secret = pyotp.random_base32()
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
@@ -120,13 +121,12 @@ def verify(userid, tfa_response):
     if totp.verify(tfa_response):
         return True
     # TOTP verification failed, check recovery code
+    elif is_recovery_code_valid(userid, tfa_response):
+        # Recovery code was valid, and consumed
+        return True
     else:
-        if is_recovery_code_valid(userid, tfa_response):
-            # Recovery code was valid, and consumed
-            return True
-        else:
-            # Received input was not a valid TOTP response, and was not a valid recovery code
-            return False
+        # Received input was not a valid TOTP response, and was not a valid recovery code
+        return False
 
 
 def get_number_of_recovery_codes(userid):
@@ -170,19 +170,12 @@ def generate_recovery_codes(userid):
     for i in range(0, _TFA_RECOVERY_CODES - 1):
         tfa_recovery_codes |= {security.generate_key(20)}
     # Then, insert the codes into the table
-    ## TODO: Figure out how to do this in one shot instead of looping the codes; this feels inelegant.
-    #for code in tfa_recovery_codes:
-        #d.engine.execute("""
-        #    INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        #    VALUES ( (%(userid)s), (%(code)s) )
-        #""", userid=userid, code=code)
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
         SELECT (%(userid)s), unnest( (%(tfa_recovery_codes)s) )
     """, userid=userid, tfa_recovery_codes=list(tfa_recovery_codes))
     # Finally, return the set of recovery codes to the calling function.
     return tfa_recovery_codes
-
 
 
 def is_recovery_code_valid(userid, tfa_code):
@@ -206,6 +199,29 @@ def is_recovery_code_valid(userid, tfa_code):
     """, userid=userid, recovery_code=tfa_code)
     # If `tfa_rc` is not None, the code was valid and consumed.
     if tfa_rc:
+        return True
+    else:
+        return False
+
+
+def is_2fa_enabled(userid):
+    """
+    Check if 2FA is enabled for a specified user.
+
+    Check the ``login.tfa_secret`` field for the tuple identified by ``userid``. If the field is NULL,
+    2FA is not enabled. If it is not null, 2FA is enabled.
+
+    Parameters:
+        userid: The userid to check for 2FA being enabled.
+
+    Returns: Boolean True if 2FA is enabled for ``userid``, otherwise Boolean False.
+    """
+    result = d.engine.scalar("""
+        SELECT tfa_secret
+        FROM login
+        WHERE userid = (%(userid)s)
+    """, userid=userid)
+    if result:
         return True
     else:
         return False
