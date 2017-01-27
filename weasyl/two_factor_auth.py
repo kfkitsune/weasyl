@@ -217,7 +217,7 @@ def is_2fa_enabled(userid):
     Returns: Boolean True if 2FA is enabled for ``userid``, otherwise Boolean False.
     """
     result = d.engine.scalar("""
-        SELECT tfa_secret
+        SELECT twofa_secret
         FROM login
         WHERE userid = (%(userid)s)
     """, userid=userid)
