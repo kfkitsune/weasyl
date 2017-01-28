@@ -70,7 +70,6 @@ def test_is_recovery_code_valid():
     assert not tfa.is_recovery_code_valid(user_id, "a" * 20)
 
 
-
 @pytest.mark.usefixtures('db')
 def test_init():
     """
