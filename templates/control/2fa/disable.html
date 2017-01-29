@@ -1,25 +1,25 @@
 $def with (error)
-$:{RENDER("common/stage_title.html", ["Disable Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication", "Settings"])}
 
 <div class="content form clear">
   $if error == "2fa":
     <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
-  <h3>Disable Two-Factor Authentication</h3>
+  <h3>Disable Two-Factor Authentication (2FA)</h3>
   <p>Username: $:{LOGIN()}</p>
   <p>
-    You are about to disable Two-Factor Authentication for the above account, and remove the
-    security which it provides. If you wish to re-enable Two-Factor Authentication, you will
+    You are about to disable 2FA for the above account, and remove the
+    security which it provides. If you wish to re-enable 2FA, you will
     need to go through through the enabling process once again.
   </p>
   <form method="POST" class="form skinny clear" action="/tfa/tfa_disable">
-    <label for="disable-tfa">Time-based token or Recovery code</label>
+    <label for="disable-tfa">2FA token or Recovery Code</label>
     <input type="text" class="input" maxlength="20" id="disable-tfa" name="tfaresponse" />
-    <input class="checkbox" type="checkbox" id="verify-disable" name="verify"><label for="verify-disable">Disable Two-Factor Authentication</label></input>
+    <input class="checkbox" type="checkbox" id="verify-disable" name="verify"><label for="verify-disable">I confirm that I want to disable 2FA</label></input>
 
     $:{CSRF()}
     <div style="padding-top: 1em;">
       <button class="button negative" name="action" value="cancel">Cancel</button>
-      <button class="button positive" name="action" value="enable">Enable Two-Factor Authentication</button>
+      <button class="button positive" name="action" value="disable">Disable 2FA</button>
     </div>
   </form>
 </div>
