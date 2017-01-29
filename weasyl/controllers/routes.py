@@ -16,6 +16,7 @@ from weasyl.controllers import (
     moderation,
     profile,
     settings,
+    two_factor_auth,
     user,
     weasyl_collections,
 )
@@ -57,6 +58,17 @@ routes = (
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
+
+    # Two-Factor Authentication views.
+    Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
+    Route("/control/2fa/init", "control_2fa_init",
+          {'GET': two_factor_auth.tfa_init_get_, 'POST': two_factor_auth.tfa_init_post_}),
+    #Route("/control/2fa/init_verify", "control_2fa_init_verify",
+    #      {'GET': two_factor_auth.tfa_init_verify_get_, 'POST': two_factor_auth.tfa_init_verify_post_}),
+    #Route("/control/2fa/disable", "control_2fa_disable",
+    #      {'GET': two_factor_auth.tfa_disable_get_, 'POST': two_factor_auth.tfa_disable_post_}),
+    #Route("/control/2fa/gen_recovery_codes", "control_2fa_gen_recovery_codes",
+    #      {'GET': two_factor_auth.tfa_gen_recovery_codes_get_, 'POST': two_factor_auth.tfa_gen_recovery_codes_post_}),
 
     # Profile views.
     Route("/~", "profile_tilde_unnamed", profile.profile_),

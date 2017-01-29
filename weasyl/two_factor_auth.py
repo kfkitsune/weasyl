@@ -1,11 +1,11 @@
 """
 Module for handling 2FA-related functions.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
-import base64
+import re
+import urllib
 
-import arrow
 import pyotp
 from qrcodegen import QrCode
 
@@ -37,7 +37,10 @@ def init(userid):
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
     qr = QrCode.encode_text(totp_uri, QrCode.Ecc.MEDIUM)
-    tfa_qrcode = qr.to_svg_str(4)
+    qr_xml = qr.to_svg_str(4)
+    # We only care about the content in the <svg> tags; strip '\n' to permit re.search to work
+    qr_svg_only = re.search(r"<svg.*<\/svg>", qr_xml.replace('\n', '')).group(0)
+    tfa_qrcode = urllib.quote(qr_svg_only)
     # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
     return tfa_secret, tfa_qrcode
 

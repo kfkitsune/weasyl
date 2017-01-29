@@ -4,7 +4,10 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/tfa/tfa_codes_verify">
     $if error == "2fa":
-      <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
+      <div id="signin_error">
+        <strong>Whoops!</strong> The 2FA response token you provided did not validate. <strong>
+        You will need to re-print/save your recovery codes, as they have changed.</strong>
+      </div>
     <h3>Verify Receipt of Two-Factor Authentication (2FA) Recovery Codes</h3>
     <p>
       <em>Print these codes, and secure them as you would your password.</em>

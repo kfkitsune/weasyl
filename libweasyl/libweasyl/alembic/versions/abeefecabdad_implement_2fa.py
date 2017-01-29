@@ -1,8 +1,10 @@
-"""Implement 2fa
+"""
 Implements two-factor authentication.
+
 Revision ID: abeefecabdad
 Revises: 40c00abab5f9
-Create Date: 2016-09-23 01:56:20.093477
+Create Date: 2017-01-19 01:56:20.093477
+
 """
 
 # revision identifiers, used by Alembic.

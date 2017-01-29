@@ -1,4 +1,4 @@
-$def with (tfa_secret, qrcode, error)
+$def with (username, tfa_secret, qrcode, error)
 $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "Settings"])}
 
 <div class="content form clear">
@@ -8,7 +8,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     $elif error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
     <h3>Two-Factor Authentication</h3>
-    <p>Username: $:{LOGIN()}</p>
+    <p>Username: $:{username}</p>
     <p>
       You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
       You will need a compatible app such as Google Authenticator to generate time-based tokens
@@ -31,7 +31,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
     <h3>Scan with Google Authenticator...</h3>
     <div>
-      ${qrcode}
+      <img src="data:image/svg+xml;utf8,${qrcode}">
     </div>
     <h3>... or manually enter your secret key</h3>
     <p>

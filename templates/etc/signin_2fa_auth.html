@@ -1,4 +1,4 @@
-$def with (username, referer, error)
+$def with (username, referer, remaining_recovery_codes, error)
 $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
 
 <div class="content form clear">
@@ -11,8 +11,9 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
     <p>
       The Weasyl account identified above has two-factor authentication enabled.
       Enter the current time-based token for this user below. Or, if you no longer
-      have access to the authenticator for this account, enter one of your twenty-character
-      recovery codes instead. <em>(Be sure to keep track of used codes.)</em>
+      have access to the authenticator for this account, enter one of your unused
+      twenty-character recovery codes. <strong>You have ${remaining_recovery_codes}
+      codes remaining.</strong>
     </p>
     <label for="tfa-response">Time-based Token or Recovery Code</label>
     <input type="text" id="tfa-response" maxlength="20" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" required />
