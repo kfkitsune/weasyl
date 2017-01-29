@@ -1,11 +1,11 @@
 $def with (tfa_secret, tfa_recovery_codes, error)
-$:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authentication", "Settings"])}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/tfa/tfa_codes_verify">
     $if error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
-    <h3>Verify Receipt of Two-Factor Authentication Recovery Codes</h3>
+    <h3>Verify Receipt of Two-Factor Authentication (2FA) Recovery Codes</h3>
     <p>
       <em>Print these codes, and secure them as you would your password.</em>
       In the event you lose access to your authenticator app, you will need these
@@ -15,7 +15,7 @@ $:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authenticat
     <p>
       <strong>Warning:</strong> For security reasons, Weasyl staff will be unable to assist you if
       you lose access to your recovery codes. We advise never using more than eight codes, as you will
-      need two to disable two-factor authentication from a logged-out state (one code to log in, one
+      need two to disable 2FA from a logged-out state (one code to log in, one
       code to disable two-factor authentication).
     </p>
     <p><b><em>Any previous recovery codes you may have been issues are now invalid.</em></b></p>
@@ -28,7 +28,7 @@ $:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authenticat
       These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
       If and when used, mark each code off. Codes may be used in any order.
     </p>
-    <label for="tfa-init-verify">Enter Two-factor token</label>
+    <label for="tfa-init-verify">Enter 2FA token</label>
     <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" />
     <input class="checkbox" type="checkbox" id="verify-enable" name="verify"><label for="verify-enable">I confirm that I have printed the above recovery codes, and wish to enable 2FA</label></input>
 
@@ -37,7 +37,7 @@ $:{RENDER("common/stage_title.html", ["Verify Enabling of Two-Factor Authenticat
 
     <div style="padding-top: 1em;">
       <button class="button negative" name="action" value="cancel">Cancel</button>
-      <button class="button positive" name="action" value="enable">Enable Two-Factor Authentication</button>
+      <button class="button positive" name="action" value="enable">Enable 2FA</button>
     </div>
   </form>
 </div>
