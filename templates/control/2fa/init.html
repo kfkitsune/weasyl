@@ -1,5 +1,5 @@
 $def with (tfa_secret, qrcode, error)
-$:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "Settings"])}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/tfa/tfa_init_verify">
@@ -10,7 +10,7 @@ $:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Setti
     <h3>Two-Factor Authentication</h3>
     <p>Username: $:{LOGIN()}</p>
     <p>
-      You are about to enable two-factor authentication for the Weasyl account identified above.
+      You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
       You will need a compatible app such as Google Authenticator to generate time-based tokens
       each time you log into your Weasyl account.
     </p>
@@ -24,7 +24,7 @@ $:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Setti
       <strong>Warning:</strong> For security reasons, Weasyl staff will be unable to assist you if
       you lose access to your recovery codes. We advise never using more than eight codes, as you will
       need two to disable two-factor authentication from a logged-out state (one code to log in, one
-      code to disable two-factor authentication).
+      code to disable 2FA).
     </p>
     <h3>Confirm your Password</h3>
       <label for="login-pass">Password</label>
@@ -37,7 +37,7 @@ $:{RENDER("common/stage_title.html", ["Enable Two-Factor Authentication", "Setti
     <p>
       Your TOTP key is: ${tfa_secret}
     </p>
-    <label for="tfa-init-verify">Enter Two-factor token</label>
+    <label for="tfa-init-verify">Enter 2FA token</label>
     <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" required />
 
     <input type="hidden" value="${tfa_secret}" name="tfasecret" />
