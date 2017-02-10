@@ -114,6 +114,9 @@ def verify(userid, tfa_response):
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
+    # If the length of `tfa_response` is not 6 or 20, it's automatically invalid.
+    if len(tfa_response) != 6 or len(tfa_response) != 20:
+        return False
     tfa_secret = d.engine.scalar("""
         SELECT twofa_secret
         FROM login
@@ -194,6 +197,9 @@ def is_recovery_code_valid(userid, tfa_code):
 
     Returns: Boolean True if the code was valid and has been consumed, Boolean False, otherwise.
     """
+    # Recovery codes must be 20 characters; fast-fail if `tfa_code` is not 20
+    if len(tfa_code) != 20:
+        return False
     # Check to see if the provided code is valid, and consume if so
     tfa_rc = d.engine.scalar("""
         DELETE FROM twofa_recovery_codes
@@ -245,6 +251,7 @@ def deactivate(userid, tfa_response):
     Returns: Boolean True if 2FA was successfully disabled, otherwise Boolean False if the
     verification of `tfa_response` failed (bad challenge-response or invalid recovery code).
     """
+    # Sanity checking for length requirement performed in verify() function (6 or 20 length)
     if verify(userid, tfa_response):
         # Atomically disable 2FA to prevent either step from failing and resulting in a (potentially) inconsistent state.
         d.engine.execute("""
