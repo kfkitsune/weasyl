@@ -115,7 +115,7 @@ def verify(userid, tfa_response):
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
     # If the length of `tfa_response` is not 6 or 20, it's automatically invalid.
-    if len(tfa_response) != 6 or len(tfa_response) != 20:
+    if len(tfa_response) != 6 and len(tfa_response) != 20:
         return False
     tfa_secret = d.engine.scalar("""
         SELECT twofa_secret
