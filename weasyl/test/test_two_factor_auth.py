@@ -49,6 +49,7 @@ def test_generate_recovery_codes():
         WHERE userid = (%(userid)s)
     """, userid=user_id).fetchall()
     for code in query:
+        assert len(code['recovery_code']) == 20
         assert code['recovery_code'] in recovery_codes
 
 
