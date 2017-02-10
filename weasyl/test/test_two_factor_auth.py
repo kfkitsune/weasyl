@@ -163,6 +163,7 @@ def test_deactivate():
         WHERE userid = (%(userid)s)
     """, userid=user_id, tfas=tfa_secret)
     tfa_response = totp.now()
+    print(type(tfa_response))
     assert tfa.deactivate(user_id, tfa_response)
     
     # Code path 1.2: 2FA enabled, deactivated by recovery code
