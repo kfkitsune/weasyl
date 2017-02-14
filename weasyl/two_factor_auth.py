@@ -34,15 +34,32 @@ def init(userid):
         a template to render the QRcode.
     """
     tfa_secret = pyotp.random_base32()
+    # Get the 2FA provisioning QRCode
+    tfa_qrcode = generate_tfa_qrcode(userid, tfa_secret)
+    # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
+    return tfa_secret, tfa_qrcode
+
+
+def generate_tfa_qrcode(userid, tfa_secret):
+    """
+    Generate a 2FA QRCode on-demand, with the provisioning URI based on the supplied 2FA-secret.
+    
+    Used as a helper function for init(), or to regenerate the QRCode from a failed attempt
+    at verifying the init()/init_verify_tfa() phases.
+    
+    Parameters:
+        userid: The userid for the calling user; used to retrieve the username for the provisioning URI.
+        tfa_secret: The tfa_secret as generated from init(), initially.
+    
+    Returns: A TOTP provisioning URI in a QRCode.
+    """
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
     qr = QrCode.encode_text(totp_uri, QrCode.Ecc.MEDIUM)
     qr_xml = qr.to_svg_str(4)
     # We only care about the content in the <svg> tags; strip '\n' to permit re.search to work
     qr_svg_only = re.search(r"<svg.*<\/svg>", qr_xml.replace('\n', '')).group(0)
-    tfa_qrcode = urllib.quote(qr_svg_only)
-    # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
-    return tfa_secret, tfa_qrcode
+    return urllib.quote(qr_svg_only)
 
 
 def init_verify_tfa(userid, tfa_secret, tfa_response):
@@ -60,7 +77,7 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
         tfa_response: The 2FA challenge-response code to verify against tfa_secret.
 
     Returns:
-        - Boolean False if the verification failed; or
+        - A tuple of False,None if the verification failed; or
         - A tuple in the form of (tfa_secret, generate_recovery_codes(userid)) where:
             tfa_secret: Is the verified working TOTP secret key
             generate_recovery_codes(userid): Is a list of recovery codes bound to the user.
@@ -70,7 +87,7 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
     if totp.verify(tfa_response):
         return tfa_secret, generate_recovery_codes(userid)
     else:
-        return False
+        return False, None
 
 
 def activate(userid, tfa_secret, tfa_response):
