@@ -189,9 +189,9 @@ def generate_recovery_codes(userid):
         WHERE userid = (%(userid)s);
     """, userid=userid)
     # Next, generate the recovery codes, up to the defined maximum value
-    tfa_recovery_codes = {security.generate_key(20)}
+    tfa_recovery_codes = {security.generate_key(20).upper()}
     for i in range(0, _TFA_RECOVERY_CODES - 1):
-        tfa_recovery_codes |= {security.generate_key(20)}
+        tfa_recovery_codes |= {security.generate_key(20).upper()}
     # Then, insert the codes into the table
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
@@ -207,6 +207,8 @@ def is_recovery_code_valid(userid, tfa_code):
 
     Determine if a supplied recovery code is present in the recovery code table
     for a specified userid. If present, consume the code by deleting the record.
+    Case-insensitive, as the code is converted to upper-case before querying
+    the database.
 
     Parameters:
         userid: The userid of the requesting user.
@@ -217,12 +219,12 @@ def is_recovery_code_valid(userid, tfa_code):
     # Recovery codes must be 20 characters; fast-fail if `tfa_code` is not 20
     if len(tfa_code) != 20:
         return False
-    # Check to see if the provided code is valid, and consume if so
+    # Check to see if the provided code--converting to upper-case first--is valid and consume if so
     tfa_rc = d.engine.scalar("""
         DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
         RETURNING recovery_code
-    """, userid=userid, recovery_code=tfa_code)
+    """, userid=userid, recovery_code=tfa_code.upper())
     # If `tfa_rc` is not None, the code was valid and consumed.
     if tfa_rc:
         return True
