@@ -2,21 +2,21 @@ $def with (username, tfa_secret, qrcode, error)
 $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "Settings"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/tfa/tfa_init_verify">
+  <form method="POST" class="form skinny clear" action="/control/2fa/init">
     $if error == "password":
       <div id="signin_error"><strong>Whoops!</strong> You entered an incorrect password.</div>
     $elif error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
     <h3>Two-Factor Authentication</h3>
-    <p>Username: $:{username}</p>
+    <p><strong>Username: $:{username}</strong></p>
     <p>
       You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
       You will need a compatible app such as Google Authenticator to generate time-based tokens
       each time you log into your Weasyl account.
     </p>
     <p>
-      Upon successful verification, you will be provided with ten recovery codes. <em>Print these
-      codes, and secure them as you would your password.</em> In the event you lose access to your
+      Upon successful verification, you will be provided with ten recovery codes. <strong>Print these
+      codes, and secure them as you would your password.</strong> In the event you lose access to your
       authenticator app, you will need these codes to regain access to your Weasyl account. Recovery
       codes can be refreshed at any time from your settings page.
     </p>
@@ -25,6 +25,10 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       you lose access to your recovery codes. We advise never using more than eight codes, as you will
       need two to disable two-factor authentication from a logged-out state (one code to log in, one
       code to disable 2FA).
+      <br />
+      As a precaution against being locked out your account if all recovery codes are used, 2FA will
+      automatically be disabled if--and only if--all recovery codes are consumed. Generating a new
+      set of codes will prevent this from occurring. If this occurs, you will need to set-up 2FA again.
     </p>
     <h3>Confirm your Password</h3>
       <label for="login-pass">Password</label>

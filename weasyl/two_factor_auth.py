@@ -34,15 +34,32 @@ def init(userid):
         a template to render the QRcode.
     """
     tfa_secret = pyotp.random_base32()
+    # Get the 2FA provisioning QRCode
+    tfa_qrcode = generate_tfa_qrcode(userid, tfa_secret)
+    # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
+    return tfa_secret, tfa_qrcode
+
+
+def generate_tfa_qrcode(userid, tfa_secret):
+    """
+    Generate a 2FA QRCode on-demand, with the provisioning URI based on the supplied 2FA-secret.
+    
+    Used as a helper function for init(), or to regenerate the QRCode from a failed attempt
+    at verifying the init()/init_verify_tfa() phases.
+    
+    Parameters:
+        userid: The userid for the calling user; used to retrieve the username for the provisioning URI.
+        tfa_secret: The tfa_secret as generated from init(), initially.
+    
+    Returns: A TOTP provisioning URI in a QRCode.
+    """
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
     qr = QrCode.encode_text(totp_uri, QrCode.Ecc.MEDIUM)
     qr_xml = qr.to_svg_str(4)
     # We only care about the content in the <svg> tags; strip '\n' to permit re.search to work
     qr_svg_only = re.search(r"<svg.*<\/svg>", qr_xml.replace('\n', '')).group(0)
-    tfa_qrcode = urllib.quote(qr_svg_only)
-    # Return the tuple (2FA secret, 2FA SVG+XML string QRCode)
-    return tfa_secret, tfa_qrcode
+    return urllib.quote(qr_svg_only)
 
 
 def init_verify_tfa(userid, tfa_secret, tfa_response):
@@ -60,7 +77,7 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
         tfa_response: The 2FA challenge-response code to verify against tfa_secret.
 
     Returns:
-        - Boolean False if the verification failed; or
+        - A tuple of False,None if the verification failed; or
         - A tuple in the form of (tfa_secret, generate_recovery_codes(userid)) where:
             tfa_secret: Is the verified working TOTP secret key
             generate_recovery_codes(userid): Is a list of recovery codes bound to the user.
@@ -70,7 +87,7 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
     if totp.verify(tfa_response):
         return tfa_secret, generate_recovery_codes(userid)
     else:
-        return False
+        return False, None
 
 
 def activate(userid, tfa_secret, tfa_response):
@@ -172,9 +189,9 @@ def generate_recovery_codes(userid):
         WHERE userid = (%(userid)s);
     """, userid=userid)
     # Next, generate the recovery codes, up to the defined maximum value
-    tfa_recovery_codes = {security.generate_key(20)}
+    tfa_recovery_codes = {security.generate_key(20).upper()}
     for i in range(0, _TFA_RECOVERY_CODES - 1):
-        tfa_recovery_codes |= {security.generate_key(20)}
+        tfa_recovery_codes |= {security.generate_key(20).upper()}
     # Then, insert the codes into the table
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
@@ -190,6 +207,8 @@ def is_recovery_code_valid(userid, tfa_code):
 
     Determine if a supplied recovery code is present in the recovery code table
     for a specified userid. If present, consume the code by deleting the record.
+    Case-insensitive, as the code is converted to upper-case before querying
+    the database.
 
     Parameters:
         userid: The userid of the requesting user.
@@ -200,12 +219,12 @@ def is_recovery_code_valid(userid, tfa_code):
     # Recovery codes must be 20 characters; fast-fail if `tfa_code` is not 20
     if len(tfa_code) != 20:
         return False
-    # Check to see if the provided code is valid, and consume if so
+    # Check to see if the provided code--converting to upper-case first--is valid and consume if so
     tfa_rc = d.engine.scalar("""
         DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
         RETURNING recovery_code
-    """, userid=userid, recovery_code=tfa_code)
+    """, userid=userid, recovery_code=tfa_code.upper())
     # If `tfa_rc` is not None, the code was valid and consumed.
     if tfa_rc:
         return True
