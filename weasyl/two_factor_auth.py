@@ -51,7 +51,8 @@ def generate_tfa_qrcode(userid, tfa_secret):
         userid: The userid for the calling user; used to retrieve the username for the provisioning URI.
         tfa_secret: The tfa_secret as generated from init(), initially.
     
-    Returns: A TOTP provisioning URI in a QRCode.
+    Returns: A URL-quoted SVG--containing the TOTP provisioning URI--capable of being inserted into
+             a data-uri for display to the user.
     """
     totp_uri = pyotp.TOTP(tfa_secret).provisioning_uri(d.get_display_name(userid), issuer_name="Weasyl")
     # Generate the QRcode
@@ -77,7 +78,7 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
         tfa_response: The 2FA challenge-response code to verify against tfa_secret.
 
     Returns:
-        - A tuple of False,None if the verification failed; or
+        - A tuple of (False, None) if the verification failed; or
         - A tuple in the form of (tfa_secret, generate_recovery_codes(userid)) where:
             tfa_secret: Is the verified working TOTP secret key
             generate_recovery_codes(userid): Is a list of recovery codes bound to the user.
@@ -131,24 +132,23 @@ def verify(userid, tfa_response):
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
-    # If the length of `tfa_response` is not 6 or 20, it's automatically invalid.
-    if len(tfa_response) != 6 and len(tfa_response) != 20:
-        return False
-    tfa_secret = d.engine.scalar("""
-        SELECT twofa_secret
-        FROM login
-        WHERE userid = (%(userid)s)
-    """, userid=userid)
-    # Validate supplied 2FA response versus calculated current TOTP value.
-    totp = pyotp.TOTP(tfa_secret)
-    if totp.verify(tfa_response):
-        return True
-    # TOTP verification failed, check recovery code
-    elif is_recovery_code_valid(userid, tfa_response):
-        # Recovery code was valid, and consumed
-        return True
+    # Length six (6) is a TOTP code...
+    if len(tfa_response) == 6:
+        tfa_secret = d.engine.scalar("""
+            SELECT twofa_secret
+            FROM login
+            WHERE userid = (%(userid)s)
+        """, userid=userid)
+        # Validate supplied 2FA response versus calculated current TOTP value.
+        totp = pyotp.TOTP(tfa_secret)
+        # Return the response of the TOTP verification; True/False
+        return totp.verify(tfa_response)
+    # Length twenty (20) is a recovery code...
+    elif len(tfa_response) == 20:
+        # Check if `tfa_response` is valid recovery code; consume & return True if so, else False
+        return is_recovery_code_valid(userid, tfa_response)
+    # Other lengths are invalid; return False
     else:
-        # Received input was not a valid TOTP response, and was not a valid recovery code
         return False
 
 
@@ -189,9 +189,7 @@ def generate_recovery_codes(userid):
         WHERE userid = (%(userid)s);
     """, userid=userid)
     # Next, generate the recovery codes, up to the defined maximum value
-    tfa_recovery_codes = {security.generate_key(20).upper()}
-    for i in range(0, _TFA_RECOVERY_CODES - 1):
-        tfa_recovery_codes |= {security.generate_key(20).upper()}
+    tfa_recovery_codes = {security.generate_key(20).upper() for i in range(_TFA_RECOVERY_CODES)}
     # Then, insert the codes into the table
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
