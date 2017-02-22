@@ -13,6 +13,27 @@ from weasyl.controllers.decorators import (
 from weasyl.error import WeasylError
 
 
+def _error_if_2fa_enabled(userid):
+    """
+    In-lieu of a module-specific decorator, this function returns an error if 2FA is enabled, preventing the user
+    from self-wiping their own 2FA Secret (AKA, re-setting up 2FA while it is already enabled)
+    """
+    if tfa.is_2fa_enabled(request.userid):
+        return Response(define.errorpage(request.userid,
+            "2FA is already configured for this account.",
+            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+
+
+def _error_if_2fa_is_not_enabled(userid):
+    """
+    In-lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
+    """
+    if not tfa.is_2fa_enabled(request.userid):
+        return Response(define.errorpage(request.userid,
+            "2FA is not configured for this account.",
+            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+
+
 @login_required
 def tfa_status_get_(request):
     return Response(define.webpage(request.userid, "control/2fa/status.html",
@@ -21,31 +42,27 @@ def tfa_status_get_(request):
 
 @login_required
 def tfa_init_get_(request):
-    if tfa.is_2fa_enabled(request.userid):
-        return Response(define.errorpage(
-            request.userid,
-            "2FA is already configured for this account.",
-            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
-    else:
-        username = define.engine.scalar("""
-            SELECT login_name
-            FROM login
-            WHERE userid = (%(userid)s)
-        """, userid=request.userid)
-        tfa_secret, tfa_qrcode = tfa.init(request.userid)
-        return Response(define.webpage(request.userid, "control/2fa/init.html",
-                        [username, tfa_secret, tfa_qrcode, None]))
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+
+    # Otherwise begin the 2FA initialization process for this user
+    username = define.engine.scalar("""
+        SELECT login_name
+        FROM login
+        WHERE userid = (%(userid)s)
+    """, userid=request.userid)
+    tfa_secret, tfa_qrcode = tfa.init(request.userid)
+    return Response(define.webpage(request.userid, "control/2fa/init.html",
+                   [username, tfa_secret, tfa_qrcode, None]))
 
 
 @login_required
 @token_checked
 def tfa_init_post_(request):
-    if tfa.is_2fa_enabled(request.userid):
-        return Response(define.errorpage(
-            request.userid,
-            "2FA is already configured for this account.",
-            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
-    
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+
+    # Otherwise, process the form
     if request.params['action'] == "cancel":
         raise HTTPSeeOther(location="/control")
     elif request.params['action'] == "continue":
@@ -73,10 +90,87 @@ def tfa_init_post_(request):
 
 @login_required
 def tfa_init_verify_get_(request):
-    pass
+    """
+    IMPLEMENTATION NOTE: This page cannot be accessed directly, as the user has not generated their 2FA secret at this point,
+    and thus not loaded the secret into their 2FA authenticator of choice. That said, be helpful and inform the user of this.
+    """
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+    
+    # If 2FA is not enabled, inform the user of where to go to begin
+    return Response(define.errorpage(
+        request.userid,
+        """This page cannot be accessed directly, and must be accessed as part of the 2FA setup process. Click <b>2FA Status</b>, 
+        below, to go to the 2FA Dashboard to begin.""",
+        [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
 
 
 @login_required
 @token_checked
 def tfa_init_verify_post_(request):
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+
+    # Extract parameters from the form
+    action = request.params['action']
+    verify_checkbox = request.params['verify']
+    tfasecret = request.params['tfasecret']
+    tfaresponse = request.params['tfaresponse']
+
+    # Does the user want to proceed with enabling 2FA?
+    if action == "enable" and verify_checkbox:
+        # TOTP+2FA Secret validates (activate & redirect to status page)
+        if tfa.activate(request.userid, tfasecret, tfaresponse):
+            raise HTTPSeeOther(location="/control/2fa/status")
+        # TOTP+2FA Secret did not validate
+        else:
+            return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
+                [tfa_secret, tfa.generate_recovery_codes(request.userid), "2fa"]))
+
+    # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
+    elif action == "enable" and not verify_checkbox:
+        return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
+            [tfa_secret, tfa.generate_recovery_codes(request.userid), "verify"]))
+
+    # User wishes to cancel, so bail out
+    elif action == "cancel":
+        raise HTTPSeeOther(location="/control/2fa/status")
+    else:
+        # This shouldn't be reached normally (user intentionally altered action?)
+        raise WeasylError("Unexpected")
+
+
+"""
+@login_required
+def tfa_disable_get_(request):
+    # Return an error if 2FA is not enabled (there's nothing to do in this route)
+    _error_if_2fa_is_not_enabled(request.userid)
+    
     pass
+
+
+@login_required
+@token_checked
+def tfa_disable_post_(request):
+    # Return an error if 2FA is not enabled (there's nothing to do in this route)
+    _error_if_2fa_is_not_enabled(request.userid)
+    
+    pass
+
+
+@login_required
+def tfa_gen_recovery_codes_get_(request):
+    # Return an error if 2FA is not enabled (there's nothing to do in this route)
+    _error_if_2fa_is_not_enabled(request.userid)
+    
+    pass
+
+
+@login_required
+@token_checked
+def tfa_gen_recovery_codes_post_(request):
+    # Return an error if 2FA is not enabled (there's nothing to do in this route)
+    _error_if_2fa_is_not_enabled(request.userid)
+    
+    pass
+"""
