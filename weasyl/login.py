@@ -102,12 +102,6 @@ def authenticate_bcrypt(username, password, session=True):
     if session:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            # Save to the user's session that we successfully passed password authentication w/time passed
-            sess = d.get_weasyl_session()
-            sess.password_authenticated_userid = USERID
-            sess.password_authenticated_time = arrow.now().timestamp
-            sess.save = True
-            # Then return back that we need the 2FA authentication
             return USERID, "2fa"
         else:
             signin(USERID)

@@ -18,8 +18,8 @@ def _error_if_2fa_enabled(userid):
     In-lieu of a module-specific decorator, this function returns an error if 2FA is enabled, preventing the user
     from self-wiping their own 2FA Secret (AKA, re-setting up 2FA while it is already enabled)
     """
-    if tfa.is_2fa_enabled(request.userid):
-        return Response(define.errorpage(request.userid,
+    if tfa.is_2fa_enabled(userid):
+        return Response(define.errorpage(userid,
             "2FA is already configured for this account.",
             [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
 
@@ -28,8 +28,8 @@ def _error_if_2fa_is_not_enabled(userid):
     """
     In-lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
     """
-    if not tfa.is_2fa_enabled(request.userid):
-        return Response(define.errorpage(request.userid,
+    if not tfa.is_2fa_enabled(userid):
+        return Response(define.errorpage(userid,
             "2FA is not configured for this account.",
             [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
 
