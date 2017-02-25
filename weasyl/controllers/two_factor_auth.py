@@ -140,13 +140,13 @@ def tfa_init_verify_post_(request):
         raise WeasylError("Unexpected")
 
 
-"""
 @login_required
 def tfa_disable_get_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
-    
-    pass
+
+    return Response(define.webpage(request.userid, "control/2fa/disable.html",
+        [define.get_display_name(request.userid), None]))
 
 
 @login_required
@@ -154,10 +154,30 @@ def tfa_disable_get_(request):
 def tfa_disable_post_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
-    
-    pass
 
+    tfaresponse = request.params['tfaresponse']
+    verify_checkbox = request.params['verify']
+    action = request.params['action']
 
+    if action == "disable" and verify_checkbox:
+        # If 2FA was successfully deactivated... return to 2FA dashboard
+        if tfa.deactivate(request.userid, tfaresponse):
+            raise HTTPSeeOther(location="/control/2fa/status")
+        else:
+            return Response(define.webpage(request.userid, "control/2fa/disable.html",
+                [define.get_display_name(request.userid), "2fa"]))
+    # The user didn't check the verification checkbox (despite HTML5's client-side check)
+    elif action == "disable" and not verify_checkbox:
+        return Response(define.webpage(request.userid, "control/2fa/disable.html",
+            [define.get_display_name(request.userid), "verify"]))
+    # User wishes to cancel, so bail out
+    elif action == "cancel":
+        raise HTTPSeeOther(location="/control/2fa/status")
+    else:
+        # This shouldn't be reached normally (user intentionally altered action?)
+        raise WeasylError("Unexpected")
+
+"""
 @login_required
 def tfa_gen_recovery_codes_get_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)

@@ -101,10 +101,11 @@ def signin_2fa_auth_get_(request):
             "Your login session has timed out. Please try logging in again.",
             [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
     else:
+        ref = request.params["referer"] if "referer" in request.params else "/"
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(tfa_userid), form.referer, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+            [define.get_display_name(tfa_userid), ref, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
              None]))
 
 
@@ -141,7 +142,7 @@ def signin_2fa_auth_post_(request):
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(tfa_userid), form.referer, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
              "2fa"]))
 
 
