@@ -115,21 +115,22 @@ def tfa_init_verify_post_(request):
     verify_checkbox = request.params['verify']
     tfasecret = request.params['tfasecret']
     tfaresponse = request.params['tfaresponse']
+    tfarecoverycodes = request.params['tfarecoverycodes']
 
     # Does the user want to proceed with enabling 2FA?
-    if action == "enable" and verify_checkbox:
+    if action == "enable" and verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
         # TOTP+2FA Secret validates (activate & redirect to status page)
         if tfa.activate(request.userid, tfasecret, tfaresponse):
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                [tfasecret, tfa.generate_recovery_codes(request.userid), "2fa"]))
+                [tfasecret, tfarecoverycodes.split(','), "2fa"]))
 
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif action == "enable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-            [tfasecret, tfa.generate_recovery_codes(request.userid), "verify"]))
+            [tfasecret, tfarecoverycodes.split(','), "verify"]))
 
     # User wishes to cancel, so bail out
     elif action == "cancel":

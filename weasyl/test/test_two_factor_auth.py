@@ -36,21 +36,45 @@ def test_get_number_of_recovery_codes():
     assert tfa.get_number_of_recovery_codes(user_id) == 0
 
 
-@pytest.mark.usefixtures('db')
 def test_generate_recovery_codes():
-    user_id = db_utils.create_user()
+    codes = tfa.generate_recovery_codes()
+    assert len(codes) == 10
+    for code in codes:
+        assert len(code) == 20
 
-    recovery_codes = tfa.generate_recovery_codes(user_id)
-    assert len(recovery_codes) == 10
+
+def test_store_recovery_codes():
+    user_id = db_utils.create_user()
+    valid_code_string = "01234567890123456789,02234567890123456789,03234567890123456789,04234567890123456789,05234567890123456789,06234567890123456789,07234567890123456789,08234567890123456789,09234567890123456789,10234567890123456789"
+    recovery_code = "A" * 20
+    d.engine.execute("""
+        INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        VALUES ( (%(userid)s), (%(code)s) )
+    """, userid=user_id, code=recovery_code)
+
+    # store_recovery_codes() will not accept a string of codes where the total code count is not 10
+    invalid_codes = valid_code_string.split(',').pop()
+    assert not tfa.store_recovery_codes(user_id, ','.join(invalid_codes))
+
+    # store_recovery_codes() will not accept a string of codes when the code length is not 20
+    invalid_codes = "01,02,03,04,05,06,07,08,09,10"
+    assert not tfa.store_recovery_codes(user_id, invalid_codes)
+
+    # When a correct code list is provides, the codes will be stored successfully in the database
+    assert tfa.store_recovery_codes(user_id, valid_code_string)
 
     query = d.engine.execute("""
         SELECT recovery_code
         FROM twofa_recovery_codes
         WHERE userid = (%(userid)s)
     """, userid=user_id).fetchall()
+
+    # Verify that the target codes were added, and the originally stored code does not remain
+    assert recovery_code not in query
+    valid_code_list = valid_code_string.split(',')
     for code in query:
         assert len(code['recovery_code']) == 20
-        assert code['recovery_code'] in recovery_codes
+        assert code['recovery_code'] in valid_code_list
 
 
 @pytest.mark.usefixtures('db')

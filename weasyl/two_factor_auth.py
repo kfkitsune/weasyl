@@ -81,12 +81,12 @@ def init_verify_tfa(userid, tfa_secret, tfa_response):
         - A tuple of (False, None) if the verification failed; or
         - A tuple in the form of (tfa_secret, generate_recovery_codes(userid)) where:
             tfa_secret: Is the verified working TOTP secret key
-            generate_recovery_codes(userid): Is a list of recovery codes bound to the user.
+            generate_recovery_codes(): Is a set of recovery codes
     """
     totp = pyotp.TOTP(tfa_secret)
     # If the provided `tfa_response` matches the TOTP value, add the value and return recovery codes
     if totp.verify(tfa_response):
-        return tfa_secret, generate_recovery_codes(userid)
+        return tfa_secret, generate_recovery_codes()
     else:
         return False, None
 
@@ -169,34 +169,49 @@ def get_number_of_recovery_codes(userid):
     """, userid=userid)
 
 
-def generate_recovery_codes(userid):
+def generate_recovery_codes():
     """
-    Generate a fresh set of 2FA recovery codes for a user.
+    Generate a set of valid recovery codes.
 
-    Initializes or otherwise refreshes the 2FA recovery codes for a user,
-    by deleting all rows from the recovery table where the userid matches the
-    supplied userid, and generates fresh codes to supply to the user.
+    Parameters: None
+
+    Returns: A set of length ``_TFA_RECOVERY_CODES`` where each code is 20 characters in length.
+    """
+    return {security.generate_key(20).upper() for i in range(_TFA_RECOVERY_CODES)}
+
+
+def store_recovery_codes(userid, recovery_codes):
+    """
+    Store generated recovery codes into the recovery code table, checking for validity.
 
     Parameters:
-        userid: The userid to create new recovery codes for.
+        userid: The userid to save the recovery codes for.
+        recovery_codes: Comma separated unicode string of recovery codes.
 
-    Returns:
-        A set of recovery codes linked to the passed userid.
+    Returns: Boolean True if the codes were successfully saved to the database, otherwise
+    Boolean False
     """
-    # First, purge existing recovery codes (if any).
+    # Force the incoming string to uppercase, then split into a list
+    codes = recovery_codes.upper().split(',')
+    # The list must exist and be equal to the current codes to generate
+    if not len(codes) == _TFA_RECOVERY_CODES:
+        return False
+    # Make sure all codes are 20 characters long, as expected
+    for code in codes:
+        if not len(code) == 20:
+            return False
+
+    # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""
         DELETE FROM twofa_recovery_codes
         WHERE userid = (%(userid)s);
     """, userid=userid)
-    # Next, generate the recovery codes, up to the defined maximum value
-    tfa_recovery_codes = {security.generate_key(20).upper() for i in range(_TFA_RECOVERY_CODES)}
-    # Then, insert the codes into the table
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
         SELECT (%(userid)s), unnest( (%(tfa_recovery_codes)s) )
-    """, userid=userid, tfa_recovery_codes=list(tfa_recovery_codes))
-    # Finally, return the set of recovery codes to the calling function.
-    return tfa_recovery_codes
+    """, userid=userid, tfa_recovery_codes=list(codes))
+
+    return True
 
 
 def is_recovery_code_valid(userid, tfa_code):
