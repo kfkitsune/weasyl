@@ -19,9 +19,9 @@ def _error_if_2fa_enabled(userid):
     from self-wiping their own 2FA Secret (AKA, re-setting up 2FA while it is already enabled)
     """
     if tfa.is_2fa_enabled(userid):
-        return Response(define.errorpage(userid,
-                        "2FA is already configured for this account.",
-                        [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+        return Response(define.errorpage(userid, "2FA is already configured for this account.", [
+            ["Go Back", "/control"], ["Return to the Home Page", "/"]
+        ]))
 
 
 def _error_if_2fa_is_not_enabled(userid):
@@ -29,15 +29,16 @@ def _error_if_2fa_is_not_enabled(userid):
     In lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
     """
     if not tfa.is_2fa_enabled(userid):
-        return Response(define.errorpage(userid,
-                        "2FA is not configured for this account.",
-                        [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+        return Response(define.errorpage(userid, "2FA is not configured for this account.", [
+            ["Go Back", "/control"], ["Return to the Home Page", "/"]
+        ]))
 
 
 @login_required
 def tfa_status_get_(request):
-    return Response(define.webpage(request.userid, "control/2fa/status.html",
-                    [tfa.is_2fa_enabled(request.userid), tfa.get_number_of_recovery_codes(request.userid)]))
+    return Response(define.webpage(request.userid, "control/2fa/status.html", [
+        tfa.is_2fa_enabled(request.userid), tfa.get_number_of_recovery_codes(request.userid)
+    ]))
 
 
 @login_required
@@ -65,9 +66,12 @@ def tfa_init_post_(request):
                                                    request.params['password'], session=False)
         # The user's password failed to authenticate
         if status == "invalid":
-            return Response(define.webpage(request.userid, "control/2fa/init.html",
-                            [define.get_display_name(request.userid), request.params['tfasecret'],
-                            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "password"]))
+            return Response(define.webpage(request.userid, "control/2fa/init.html", [
+                define.get_display_name(request.userid),
+                request.params['tfasecret'],
+                tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
+                "password"
+            ]))
         # Unlikely that this block will get triggered, but just to be safe, check for it
         elif status == "unicode-failure":
             raise HTTPSeeOther(location='/signin/unicode-failure')
@@ -75,9 +79,12 @@ def tfa_init_post_(request):
 
         # The 2FA TOTP code did not match with the generated 2FA secret
         if not tfa_secret:
-            return Response(define.webpage(request.userid, "control/2fa/init.html",
-                            [define.get_display_name(request.userid), request.params['tfasecret'],
-                            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "2fa"]))
+            return Response(define.webpage(request.userid, "control/2fa/init.html", [
+                define.get_display_name(request.userid),
+                request.params['tfasecret'],
+                tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
+                "2fa"
+            ]))
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
                             [tfa_secret, recovery_codes, None]))
@@ -98,10 +105,10 @@ def tfa_init_verify_get_(request):
 
     # If 2FA is not enabled, inform the user of where to go to begin
     return Response(define.errorpage(
-            request.userid,
-            """This page cannot be accessed directly, and must be accessed as part of the 2FA setup process. Click <b>2FA Status</b>,
-            below, to go to the 2FA Dashboard to begin.""",
-            [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+                    request.userid,
+                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
+                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
+                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
 
 
 @login_required
@@ -176,6 +183,7 @@ def tfa_disable_post_(request):
     else:
         # This shouldn't be reached normally (user intentionally altered action?)
         raise WeasylError("Unexpected")
+
 
 """
 @login_required
