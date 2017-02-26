@@ -65,6 +65,9 @@ def test_is_recovery_code_valid():
     # Failure: Recovery code is invalid (code was not a real code)
     assert not tfa.is_recovery_code_valid(user_id, "z" * 20)
 
+    # Failure: Recovery codes are 20 characters, and the function fast-fails if not 20 chars.
+    assert not tfa.is_recovery_code_valid(user_id, "z" * 19)
+
     # Success: Recovery code is valid (code is consumed)
     assert tfa.is_recovery_code_valid(user_id, recovery_code)
 
@@ -215,6 +218,10 @@ def test_verify():
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
         VALUES ( (%(userid)s), (%(code)s) )
     """, userid=user_id, code=recovery_code)
+
+    # Code path 0: Codes of any other length than 6 or 20 returns False
+    assert not tfa.verify(user_id, "a" * 5)
+    assert not tfa.verify(user_id, "a" * 21)
 
     # Code path 1: TOTP token matches current expected value (Successful Verification)
     tfa_response = totp.now()

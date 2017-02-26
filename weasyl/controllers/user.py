@@ -86,15 +86,15 @@ def signin_2fa_auth_get_(request):
     sess = define.get_weasyl_session()
 
     # Only render page if the password has been authenticated (we have a UserID stored in the session)
-    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
-    if not tfa_userid:
+    if not '2fa_pwd_auth_userid' in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
-        sess.additional_data['2fa_pwd_auth_timestamp'] = None
-        sess.additional_data['2fa_pwd_auth_userid'] = None
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
         sess.save = True
         return Response(define.errorpage(
             request.userid,
@@ -115,15 +115,15 @@ def signin_2fa_auth_post_(request):
     sess = define.get_weasyl_session()
 
     # Only render page if the password has been authenticated (we have a UserID stored in the session)
-    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
-    if not tfa_userid:
+    if not '2fa_pwd_auth_userid' in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
-        sess.additional_data['2fa_pwd_auth_timestamp'] = None
-        sess.additional_data['2fa_pwd_auth_userid'] = None
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
         sess.save = True
         return Response(define.errorpage(
             request.userid,
@@ -131,10 +131,10 @@ def signin_2fa_auth_post_(request):
             [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
-        login.signin(tfa_userid)
-        sess.additional_data['2fa_pwd_auth_timestamp'] = None
-        sess.additional_data['2fa_pwd_auth_userid'] = None
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
         sess.save = True
+        login.signin(tfa_userid)
         ref = request.params["referer"] or "/"
         raise HTTPSeeOther(location=ref)
     else:

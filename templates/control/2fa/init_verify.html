@@ -41,8 +41,8 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
       If and when used, mark each code off. Codes may be used in any order.
     </p>
     <label for="tfa-init-verify">Enter 2FA token</label>
-    <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" required /><br />
-    <input class="checkbox" type="checkbox" id="verify-enable" name="verify" required><strong>I confirm</strong> that I have saved the above recovery codes, and <strong>I want to enable 2FA</strong>.</input>
+    <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
+    <label><input class="checkbox" type="checkbox" id="verify-enable" name="verify" required />I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
     <input type="hidden" value="${tfa_secret}" name="tfasecret" />
     $:{CSRF()}

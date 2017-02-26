@@ -15,7 +15,7 @@ from weasyl.error import WeasylError
 
 def _error_if_2fa_enabled(userid):
     """
-    In-lieu of a module-specific decorator, this function returns an error if 2FA is enabled, preventing the user
+    In lieu of a module-specific decorator, this function returns an error if 2FA is enabled, preventing the user
     from self-wiping their own 2FA Secret (AKA, re-setting up 2FA while it is already enabled)
     """
     if tfa.is_2fa_enabled(userid):
@@ -26,7 +26,7 @@ def _error_if_2fa_enabled(userid):
 
 def _error_if_2fa_is_not_enabled(userid):
     """
-    In-lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
+    In lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
     """
     if not tfa.is_2fa_enabled(userid):
         return Response(define.errorpage(userid,
@@ -46,14 +46,9 @@ def tfa_init_get_(request):
     _error_if_2fa_enabled(request.userid)
 
     # Otherwise begin the 2FA initialization process for this user
-    username = define.engine.scalar("""
-        SELECT login_name
-        FROM login
-        WHERE userid = (%(userid)s)
-    """, userid=request.userid)
     tfa_secret, tfa_qrcode = tfa.init(request.userid)
     return Response(define.webpage(request.userid, "control/2fa/init.html",
-                   [username, tfa_secret, tfa_qrcode, None]))
+                   [define.get_display_name(request.userid), tfa_secret, tfa_qrcode, None]))
 
 
 @login_required
@@ -73,6 +68,9 @@ def tfa_init_post_(request):
             return Response(define.webpage(request.userid, "control/2fa/init.html",
                 [define.get_display_name(request.userid), request.params['tfasecret'],
                  tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "password"]))
+        # Unlikely that this block will get triggered, but just to be safe, check for it
+        elif status == "unicode-failure":
+            raise HTTPSeeOther(location='/signin/unicode-failure')
         tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], request.params['tfaresponse'])
 
         # The 2FA TOTP code did not match with the generated 2FA secret
@@ -91,8 +89,9 @@ def tfa_init_post_(request):
 @login_required
 def tfa_init_verify_get_(request):
     """
-    IMPLEMENTATION NOTE: This page cannot be accessed directly, as the user has not generated their 2FA secret at this point,
-    and thus not loaded the secret into their 2FA authenticator of choice. That said, be helpful and inform the user of this.
+    IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user has not generated
+    their 2FA secret at this point, and thus not loaded the secret into their 2FA authenticator of choice.
+    That said, be helpful and inform the user of this instead of erroring without explanation.
     """
     # Return an error if 2FA is already enabled (there's nothing to do in this route)
     _error_if_2fa_enabled(request.userid)
@@ -125,12 +124,12 @@ def tfa_init_verify_post_(request):
         # TOTP+2FA Secret did not validate
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                [tfa_secret, tfa.generate_recovery_codes(request.userid), "2fa"]))
+                [tfasecret, tfa.generate_recovery_codes(request.userid), "2fa"]))
 
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif action == "enable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-            [tfa_secret, tfa.generate_recovery_codes(request.userid), "verify"]))
+            [tfasecret, tfa.generate_recovery_codes(request.userid), "verify"]))
 
     # User wishes to cancel, so bail out
     elif action == "cancel":
