@@ -20,8 +20,8 @@ def _error_if_2fa_enabled(userid):
     """
     if tfa.is_2fa_enabled(userid):
         return Response(define.errorpage(userid,
-            "2FA is already configured for this account.",
-            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+                        "2FA is already configured for this account.",
+                        [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
 
 
 def _error_if_2fa_is_not_enabled(userid):
@@ -30,8 +30,8 @@ def _error_if_2fa_is_not_enabled(userid):
     """
     if not tfa.is_2fa_enabled(userid):
         return Response(define.errorpage(userid,
-            "2FA is not configured for this account.",
-            [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
+                        "2FA is not configured for this account.",
+                        [["Go Back", "/control"], ["Return to the Home Page", "/"]]))
 
 
 @login_required
@@ -48,7 +48,7 @@ def tfa_init_get_(request):
     # Otherwise begin the 2FA initialization process for this user
     tfa_secret, tfa_qrcode = tfa.init(request.userid)
     return Response(define.webpage(request.userid, "control/2fa/init.html",
-                   [define.get_display_name(request.userid), tfa_secret, tfa_qrcode, None]))
+                    [define.get_display_name(request.userid), tfa_secret, tfa_qrcode, None]))
 
 
 @login_required
@@ -66,8 +66,8 @@ def tfa_init_post_(request):
         # The user's password failed to authenticate
         if status == "invalid":
             return Response(define.webpage(request.userid, "control/2fa/init.html",
-                [define.get_display_name(request.userid), request.params['tfasecret'],
-                 tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "password"]))
+                            [define.get_display_name(request.userid), request.params['tfasecret'],
+                            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "password"]))
         # Unlikely that this block will get triggered, but just to be safe, check for it
         elif status == "unicode-failure":
             raise HTTPSeeOther(location='/signin/unicode-failure')
@@ -76,11 +76,11 @@ def tfa_init_post_(request):
         # The 2FA TOTP code did not match with the generated 2FA secret
         if not tfa_secret:
             return Response(define.webpage(request.userid, "control/2fa/init.html",
-                [define.get_display_name(request.userid), request.params['tfasecret'],
-                 tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "2fa"]))
+                            [define.get_display_name(request.userid), request.params['tfasecret'],
+                            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']), "2fa"]))
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                [tfa_secret, recovery_codes, None]))
+                            [tfa_secret, recovery_codes, None]))
     else:
         # This shouldn't be reached normally (user intentionally altered action?)
         raise WeasylError("Unexpected")
@@ -95,13 +95,13 @@ def tfa_init_verify_get_(request):
     """
     # Return an error if 2FA is already enabled (there's nothing to do in this route)
     _error_if_2fa_enabled(request.userid)
-    
+
     # If 2FA is not enabled, inform the user of where to go to begin
     return Response(define.errorpage(
-        request.userid,
-        """This page cannot be accessed directly, and must be accessed as part of the 2FA setup process. Click <b>2FA Status</b>, 
-        below, to go to the 2FA Dashboard to begin.""",
-        [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+            request.userid,
+            """This page cannot be accessed directly, and must be accessed as part of the 2FA setup process. Click <b>2FA Status</b>,
+            below, to go to the 2FA Dashboard to begin.""",
+            [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
 
 
 @login_required
@@ -125,12 +125,12 @@ def tfa_init_verify_post_(request):
         # TOTP+2FA Secret did not validate
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                [tfasecret, tfarecoverycodes.split(','), "2fa"]))
+                            [tfasecret, tfarecoverycodes.split(','), "2fa"]))
 
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif action == "enable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-            [tfasecret, tfarecoverycodes.split(','), "verify"]))
+                        [tfasecret, tfarecoverycodes.split(','), "verify"]))
 
     # User wishes to cancel, so bail out
     elif action == "cancel":
@@ -146,7 +146,7 @@ def tfa_disable_get_(request):
     _error_if_2fa_is_not_enabled(request.userid)
 
     return Response(define.webpage(request.userid, "control/2fa/disable.html",
-        [define.get_display_name(request.userid), None]))
+                    [define.get_display_name(request.userid), None]))
 
 
 @login_required
@@ -165,11 +165,11 @@ def tfa_disable_post_(request):
             raise HTTPSeeOther(location="/control/2fa/status")
         else:
             return Response(define.webpage(request.userid, "control/2fa/disable.html",
-                [define.get_display_name(request.userid), "2fa"]))
+                            [define.get_display_name(request.userid), "2fa"]))
     # The user didn't check the verification checkbox (despite HTML5's client-side check)
     elif action == "disable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/disable.html",
-            [define.get_display_name(request.userid), "verify"]))
+                        [define.get_display_name(request.userid), "verify"]))
     # User wishes to cancel, so bail out
     elif action == "cancel":
         raise HTTPSeeOther(location="/control/2fa/status")
@@ -182,7 +182,7 @@ def tfa_disable_post_(request):
 def tfa_gen_recovery_codes_get_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
-    
+
     pass
 
 
@@ -191,6 +191,6 @@ def tfa_gen_recovery_codes_get_(request):
 def tfa_gen_recovery_codes_post_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
-    
+
     pass
 """

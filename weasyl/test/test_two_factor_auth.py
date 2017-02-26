@@ -128,7 +128,7 @@ def test_init():
     assert len(tfa_secret) == 16
     assert len(pyotp.TOTP(tfa_secret).now()) == 6
 
-    
+
 @pytest.mark.usefixtures('db')
 def test_init_verify_tfa():
     user_id = db_utils.create_user()

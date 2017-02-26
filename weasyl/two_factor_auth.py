@@ -43,14 +43,14 @@ def init(userid):
 def generate_tfa_qrcode(userid, tfa_secret):
     """
     Generate a 2FA QRCode on-demand, with the provisioning URI based on the supplied 2FA-secret.
-    
+
     Used as a helper function for init(), or to regenerate the QRCode from a failed attempt
     at verifying the init()/init_verify_tfa() phases.
-    
+
     Parameters:
         userid: The userid for the calling user; used to retrieve the username for the provisioning URI.
         tfa_secret: The tfa_secret as generated from init(), initially.
-    
+
     Returns: A URL-quoted SVG--containing the TOTP provisioning URI--capable of being inserted into
              a data-uri for display to the user.
     """
@@ -155,7 +155,7 @@ def verify(userid, tfa_response):
 def get_number_of_recovery_codes(userid):
     """
     Get and return the number of remaining recovery codes for `userid`.
-    
+
     Parameters:
         userid: The userid for which to check the count of recovery codes.
 

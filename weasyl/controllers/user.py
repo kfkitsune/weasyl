@@ -86,7 +86,7 @@ def signin_2fa_auth_get_(request):
     sess = define.get_weasyl_session()
 
     # Only render page if the password has been authenticated (we have a UserID stored in the session)
-    if not '2fa_pwd_auth_userid' in sess.additional_data:
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
@@ -115,7 +115,7 @@ def signin_2fa_auth_post_(request):
     sess = define.get_weasyl_session()
 
     # Only render page if the password has been authenticated (we have a UserID stored in the session)
-    if not '2fa_pwd_auth_userid' in sess.additional_data:
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
