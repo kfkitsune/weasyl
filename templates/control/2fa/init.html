@@ -34,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     $:{CSRF()}
 
     <div style="padding-top: 1em;">
-      <button class="button negative" onclick="location.href='/control/2fa/status';" type="button">Cancel</button>
+      <a class="button negative" href="/control/2fa/status">Cancel</a>
       <button class="button positive" name="action" value="continue">Continue</button>
     </div>
   </form>

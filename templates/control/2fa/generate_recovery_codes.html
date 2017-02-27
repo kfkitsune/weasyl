@@ -44,7 +44,7 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     $:{CSRF()}
 
     <div style="padding-top: 1em;">
-      <button class="button negative" onclick="location.href='/control/2fa/status';" type="button">Cancel</button>
+      <a class="button negative" href="/control/2fa/status">Cancel</a>
       <button class="button positive" name="action" value="save">Save New Recovery Codes</button>
     </div>
   </form>
