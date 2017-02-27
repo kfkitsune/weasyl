@@ -67,8 +67,8 @@ routes = (
           {'GET': two_factor_auth.tfa_init_verify_get_, 'POST': two_factor_auth.tfa_init_verify_post_}),
     Route("/control/2fa/disable", "control_2fa_disable",
           {'GET': two_factor_auth.tfa_disable_get_, 'POST': two_factor_auth.tfa_disable_post_}),
-    #Route("/control/2fa/gen_recovery_codes", "control_2fa_gen_recovery_codes",
-    #      {'GET': two_factor_auth.tfa_gen_recovery_codes_get_, 'POST': two_factor_auth.tfa_gen_recovery_codes_post_}),
+    Route("/control/2fa/generate_recovery_codes", "control_2fa_generate_recovery_codes",
+          {'GET': two_factor_auth.tfa_generate_recovery_codes_get_, 'POST': two_factor_auth.tfa_generate_recovery_codes_post_}),
 
     # Profile views.
     Route("/~", "profile_tilde_unnamed", profile.profile_),

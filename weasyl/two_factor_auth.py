@@ -120,7 +120,7 @@ def activate(userid, tfa_secret, tfa_response):
         return False
 
 
-def verify(userid, tfa_response):
+def verify(userid, tfa_response, consume_recovery_code=True):
     """
     Verify a 2FA-enabled user's 2FA challenge-response against the stored
     2FA secret.
@@ -129,6 +129,9 @@ def verify(userid, tfa_response):
         userid: The userid to compare the 2FA challenge-response against.
         tfa_response: User-supplied response. May be either the Google Authenticator
         (or other app) supplied code, or a recovery code
+        consume_recovery_code:  If set to True, the recovery code is consumed if it is
+        valid, otherwise the call to this function is treated as a query to the validity
+        of the recovery code. (Default: Boolean True)
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
@@ -145,8 +148,9 @@ def verify(userid, tfa_response):
         return totp.verify(tfa_response)
     # Length twenty (20) is a recovery code...
     elif len(tfa_response) == 20:
-        # Check if `tfa_response` is valid recovery code; consume & return True if so, else False
-        return is_recovery_code_valid(userid, tfa_response)
+        # Check if `tfa_response` is valid recovery code; consume according to `consume_recovery_code`,
+        #  and return True if valid, False otherwise
+        return is_recovery_code_valid(userid, tfa_response, consume_recovery_code)
     # Other lengths are invalid; return False
     else:
         return False
@@ -214,7 +218,7 @@ def store_recovery_codes(userid, recovery_codes):
     return True
 
 
-def is_recovery_code_valid(userid, tfa_code):
+def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
     """
     Checks the recovery code table for a valid recovery code.
 
@@ -226,6 +230,9 @@ def is_recovery_code_valid(userid, tfa_code):
     Parameters:
         userid: The userid of the requesting user.
         tfa_code: A candidate recovery code to check.
+        consume_recovery_code:  If set to True, the recovery code is consumed if it is
+        valid, otherwise the call to this function is treated as a query to the validity
+        of the recovery code. (Default: Boolean True)
 
     Returns: Boolean True if the code was valid and has been consumed, Boolean False, otherwise.
     """
@@ -233,12 +240,20 @@ def is_recovery_code_valid(userid, tfa_code):
     if len(tfa_code) != 20:
         return False
     # Check to see if the provided code--converting to upper-case first--is valid and consume if so
-    tfa_rc = d.engine.scalar("""
-        DELETE FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
-        RETURNING recovery_code
-    """, userid=userid, recovery_code=tfa_code.upper())
-    # If `tfa_rc` is not None, the code was valid and consumed.
+    if consume_recovery_code:
+        tfa_rc = d.engine.scalar("""
+            DELETE FROM twofa_recovery_codes
+            WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
+            RETURNING recovery_code
+        """, userid=userid, recovery_code=tfa_code.upper())
+    else:
+        # We only want to see if the code is valid at the moment.
+        tfa_rc = d.engine.scalar("""
+            SELECT recovery_code
+            FROM twofa_recovery_codes
+            WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
+        """, userid=userid, recovery_code=tfa_code.upper())
+    # Return True if the recovery code was valid, False otherwise
     if tfa_rc:
         return True
     else:
@@ -285,7 +300,6 @@ def deactivate(userid, tfa_response):
     """
     # Sanity checking for length requirement performed in verify() function (6 or 20 length)
     if verify(userid, tfa_response):
-        # Atomically disable 2FA to prevent either step from failing and resulting in a (potentially) inconsistent state.
         d.engine.execute("""
             BEGIN;
 

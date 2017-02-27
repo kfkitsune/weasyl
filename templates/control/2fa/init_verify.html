@@ -1,5 +1,5 @@
 $def with (tfa_secret, tfa_recovery_codes, error)
-$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/control/2fa/init_verify">
@@ -39,14 +39,14 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
     </p>
     <label for="tfa-init-verify">Enter 2FA token</label>
     <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
-    <label><input class="checkbox" type="checkbox" id="verify-enable" name="verify" required />I have printed or saved the above recovery codes and want to enable 2FA.</label>
+    <label><input class="checkbox" type="checkbox" name="verify" required />I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
     <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />
     <input type="hidden" value="${tfa_secret}" name="tfasecret" />
     $:{CSRF()}
 
     <div style="padding-top: 1em;">
-      <button class="button negative" name="action" value="cancel">Cancel</button>
+      <button class="button negative" onclick="location.href='/control/2fa/status';" type="button">Cancel</button>
       <button class="button positive" name="action" value="enable">Enable 2FA</button>
     </div>
   </form>

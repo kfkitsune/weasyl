@@ -1,5 +1,5 @@
 $def with (username, error)
-$:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/control/2fa/disable">
@@ -18,11 +18,11 @@ $:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication"
     <label for="disable-tfa">2FA token or Recovery Code</label>
     <input type="text" class="input" maxlength="20" id="disable-tfa" name="tfaresponse" autocomplete="off" required />
     <div style="padding-top: 1em;">
-      <input class="checkbox" type="checkbox" id="verify-disable" name="verify" required>I confirm that I want to disable 2FA</input>
+      <label><input class="checkbox" type="checkbox" name="verify" required />I confirm that I want to disable 2FA</label>
     </div>
     $:{CSRF()}
     <div style="padding-top: 1em;">
-      <button class="button negative" name="action" value="cancel">Cancel</button>
+      <button class="button negative" onclick="location.href='/control/2fa/status';" type="button">Cancel</button>
       <button class="button positive" name="action" value="disable">Disable 2FA</button>
     </div>
   </form>

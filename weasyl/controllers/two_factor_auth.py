@@ -59,9 +59,7 @@ def tfa_init_post_(request):
     _error_if_2fa_enabled(request.userid)
 
     # Otherwise, process the form
-    if request.params['action'] == "cancel":
-        raise HTTPSeeOther(location="/control")
-    elif request.params['action'] == "continue":
+    if request.params['action'] == "continue":
         userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
                                                    request.params['password'], session=False)
         # The user's password failed to authenticate
@@ -133,15 +131,10 @@ def tfa_init_verify_post_(request):
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
                             [tfasecret, tfarecoverycodes.split(','), "2fa"]))
-
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif action == "enable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
                         [tfasecret, tfarecoverycodes.split(','), "verify"]))
-
-    # User wishes to cancel, so bail out
-    elif action == "cancel":
-        raise HTTPSeeOther(location="/control/2fa/status")
     else:
         # This shouldn't be reached normally (user intentionally altered action?)
         raise WeasylError("Unexpected")
@@ -177,28 +170,53 @@ def tfa_disable_post_(request):
     elif action == "disable" and not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/disable.html",
                         [define.get_display_name(request.userid), "verify"]))
-    # User wishes to cancel, so bail out
-    elif action == "cancel":
-        raise HTTPSeeOther(location="/control/2fa/status")
     else:
         # This shouldn't be reached normally (user intentionally altered action?)
         raise WeasylError("Unexpected")
 
 
-"""
 @login_required
-def tfa_gen_recovery_codes_get_(request):
+def tfa_generate_recovery_codes_get_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
 
-    pass
+    return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
+        tfa.generate_recovery_codes(),
+        None
+    ]))
 
 
 @login_required
 @token_checked
-def tfa_gen_recovery_codes_post_(request):
+def tfa_generate_recovery_codes_post_(request):
     # Return an error if 2FA is not enabled (there's nothing to do in this route)
     _error_if_2fa_is_not_enabled(request.userid)
 
-    pass
-"""
+    # Extract parameters from the form
+    action = request.params['action']
+    verify_checkbox = request.params['verify']
+    tfaresponse = request.params['tfaresponse']
+    tfarecoverycodes = request.params['tfarecoverycodes']
+
+    # Does the user want to save the new recovery codes?
+    if action == "save" and verify_checkbox:
+        if tfa.verify(request.userid, tfaresponse, consume_recovery_code=False):
+            if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
+                # Successfuly stored new recovery codes.
+                raise HTTPSeeOther(location="/control/2fa/status")
+            else:
+                # Recovery code string was corrupted or otherwise altered.
+                raise WeasylError("Unexpected")
+        else:
+            return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
+                tfarecoverycodes.split(','),
+                "2fa"
+            ]))
+    elif action == "save" and not verify_checkbox:
+        return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
+            tfarecoverycodes.split(','),
+            "verify"
+        ]))
+    else:
+        # This shouldn't be reached normally (user intentionally altered action?)
+        raise WeasylError("Unexpected")

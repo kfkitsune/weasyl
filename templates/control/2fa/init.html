@@ -1,5 +1,5 @@
 $def with (username, tfa_secret, qrcode, error)
-$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/control/2fa/init">
@@ -12,24 +12,10 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     <p>
       You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
       You will need a compatible app such as Google Authenticator to generate time-based tokens
-      each time you log into your Weasyl account.
+      each time you log into your Weasyl account, or a recovery code which will be provided in the next
+      step.
     </p>
-    <p>
-      Upon successful verification, you will be provided with ten recovery codes. <strong>Print these
-      codes, and secure them as you would your password.</strong> In the event you lose access to your
-      authenticator app, you will need these codes to regain access to your Weasyl account. Recovery
-      codes can be refreshed at any time from your settings page.
-    </p>
-    <p>
-      <strong>Warning:</strong> For security reasons, Weasyl staff will be unable to assist you if
-      you lose access to your recovery codes. We advise never using more than eight codes, as you will
-      need two to disable two-factor authentication from a logged-out state (one code to log in, one
-      code to disable 2FA).
-      <br />
-      As a precaution against being locked out your account if all recovery codes are used, 2FA will
-      automatically be disabled if--and only if--all recovery codes are consumed. Generating a new
-      set of codes will prevent this from occurring. If this occurs, you will need to set-up 2FA again.
-    </p>
+
     <h3>Confirm your Password</h3>
       <label for="login-pass">Password</label>
       <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
@@ -48,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     $:{CSRF()}
 
     <div style="padding-top: 1em;">
-      <button class="button negative" name="action" value="cancel">Cancel</button>
+      <button class="button negative" onclick="location.href='/control/2fa/status';" type="button">Cancel</button>
       <button class="button positive" name="action" value="continue">Continue</button>
     </div>
   </form>
