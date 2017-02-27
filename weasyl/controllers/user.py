@@ -143,8 +143,8 @@ def signin_2fa_auth_post_(request):
                 tfa_userid,
                 """You have used all of your 2FA recovery codes. In order to prevent you from
                 being locked out of your account, 2FA has been disabled for your account.""",
-                [["Re-Enable 2FA", "/control/2fa/init"], ["Continue", ref]
-            ]))
+                [["Re-Enable 2FA", "/control/2fa/init"], ["Continue", ref]]
+            ))
         raise HTTPSeeOther(location=ref)
     else:
         # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
