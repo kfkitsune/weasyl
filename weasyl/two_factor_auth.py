@@ -315,3 +315,26 @@ def deactivate(userid, tfa_response):
         return True
     else:
         return False
+
+
+def force_deactivate(userid):
+    """
+    Force-deactivate 2FA for an account.
+
+    Parameters:
+        userid: The userid for an account for which to deactivate 2FA.
+
+    Returns: Nothing
+    """
+    d.engine.execute("""
+        BEGIN;
+
+        UPDATE login
+        SET twofa_secret = NULL
+        WHERE userid = (%(userid)s);
+
+        DELETE FROM twofa_recovery_codes
+        WHERE userid = (%(userid)s);
+
+        COMMIT;
+    """, userid=userid)

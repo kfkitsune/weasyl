@@ -136,6 +136,15 @@ def signin_2fa_auth_post_(request):
         sess.save = True
         login.signin(tfa_userid)
         ref = request.params["referer"] or "/"
+        # User is out of recovery codes, so force-deactivate 2FA
+        if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
+            two_factor_auth.force_deactivate(tfa_userid)
+            return Response(define.errorpage(
+                tfa_userid,
+                """You have used all of your 2FA recovery codes. In order to prevent you from
+                being locked out of your account, 2FA has been disabled for your account.""",
+                [["Re-Enable 2FA", "/control/2fa/init"], ["Continue", ref]
+            ]))
         raise HTTPSeeOther(location=ref)
     else:
         # 2FA failed; redirect to 2FA input page & inform user that authentication failed.

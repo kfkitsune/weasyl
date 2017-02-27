@@ -134,12 +134,12 @@ def test_init_verify_tfa():
     user_id = db_utils.create_user()
     tfa_secret, _ = tfa.init(user_id)
 
-    # Code path 1: Invalid initial verification (Tuple: False, None)
+    # Invalid initial verification (Tuple: False, None)
     test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, "000000")
     assert not test_tfa_secret
     assert not test_recovery_codes
 
-    # Code path 2: Valid initial verification
+    # Valid initial verification
     totp = pyotp.TOTP(tfa_secret)
     tfa_response = totp.now()
     test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, tfa_response)
@@ -153,7 +153,7 @@ def test_activate():
     tfa_secret = pyotp.random_base32()
     totp = pyotp.TOTP(tfa_secret)
 
-    # Code path 1: Failed validation between tfa_secret/tfa_response
+    # Failed validation between tfa_secret/tfa_response
     assert not tfa.activate(user_id, tfa_secret, "000000")
     # Verify 2FA is not active
     assert not d.engine.scalar("""
@@ -162,7 +162,7 @@ def test_activate():
         WHERE userid = (%(userid)s)
     """, userid=user_id)
 
-    # Code path 2: Validation successful, and tfa_secret written into user's `login` record
+    # Validation successful, and tfa_secret written into user's `login` record
     tfa_response = totp.now()
     assert tfa.activate(user_id, tfa_secret, tfa_response)
     assert tfa_secret == d.engine.scalar("""
@@ -176,10 +176,10 @@ def test_activate():
 def test_is_2fa_enabled():
     user_id = db_utils.create_user()
 
-    # Code path 1: 2FA is not enabled
+    # 2FA is not enabled
     assert not tfa.is_2fa_enabled(user_id)
 
-    # Code path 2: 2FA is enabled
+    # 2FA is enabled
     d.engine.execute("""
         UPDATE login
         SET twofa_secret = (%(tfas)s)
@@ -194,7 +194,7 @@ def test_deactivate():
     tfa_secret = pyotp.random_base32()
     totp = pyotp.TOTP(tfa_secret)
 
-    # Code path 1.1: 2FA enabled, deactivated by TOTP challenge-response code
+    # 2FA enabled, deactivated by TOTP challenge-response code
     d.engine.execute("""
         UPDATE login
         SET twofa_secret = (%(tfas)s)
@@ -203,7 +203,7 @@ def test_deactivate():
     tfa_response = totp.now()
     assert tfa.deactivate(user_id, tfa_response)
 
-    # Code path 1.2: 2FA enabled, deactivated by recovery code
+    # 2FA enabled, deactivated by recovery code
     d.engine.execute("""
         UPDATE login
         SET twofa_secret = (%(tfas)s)
@@ -217,7 +217,7 @@ def test_deactivate():
     """, userid=user_id, code=recovery_code)
     assert tfa.deactivate(user_id, recovery_code)
 
-    # Code path 2: 2FA enabled, failed deactivation (invalid `tfa_response` (code or TOTP token))
+    # 2FA enabled, failed deactivation (invalid `tfa_response` (code or TOTP token))
     d.engine.execute("""
         UPDATE login
         SET twofa_secret = (%(tfas)s)
@@ -225,6 +225,31 @@ def test_deactivate():
     """, userid=user_id, tfas=tfa_secret)
     assert not tfa.deactivate(user_id, "000000")
     assert not tfa.deactivate(user_id, "a" * 20)
+
+
+@pytest.mark.usefixtures('db')
+def test_force_deactivate():
+    user_id = db_utils.create_user()
+    tfa_secret = pyotp.random_base32()
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = (%(tfas)s)
+        WHERE userid = (%(userid)s)
+    """, userid=user_id, tfas=tfa_secret)
+    recovery_code = "A" * 20
+    d.engine.execute("""
+        INSERT INTO twofa_recovery_codes (userid, recovery_code)
+        VALUES ( (%(userid)s), (%(code)s) )
+    """, userid=user_id, code=recovery_code)
+
+    # Verify that force_deactivate() functions as expected.
+    assert tfa.is_2fa_enabled(user_id)
+    assert tfa.get_number_of_recovery_codes(user_id) == 1
+
+    tfa.force_deactivate(user_id)
+
+    assert not tfa.is_2fa_enabled(user_id)
+    assert tfa.get_number_of_recovery_codes(user_id) == 0
 
 
 @pytest.mark.usefixtures('db')
@@ -243,29 +268,38 @@ def test_verify():
         VALUES ( (%(userid)s), (%(code)s) )
     """, userid=user_id, code=recovery_code)
 
-    # Code path 0: Codes of any other length than 6 or 20 returns False
+    # Codes of any other length than 6 or 20 returns False
     assert not tfa.verify(user_id, "a" * 5)
     assert not tfa.verify(user_id, "a" * 21)
 
-    # Code path 1: TOTP token matches current expected value (Successful Verification)
+    # TOTP token matches current expected value (Successful Verification)
     tfa_response = totp.now()
     assert tfa.verify(user_id, tfa_response)
 
-    # Code path 1.1: TOTP token does not match current expected value (Unsuccessful Verification)
+    # TOTP token does not match current expected value (Unsuccessful Verification)
     assert not tfa.verify(user_id, "000000")
 
-    # Code path 2: Recovery code does not match stored value (Unsuccessful Verification)
+    # Recovery code does not match stored value (Unsuccessful Verification)
     assert not tfa.verify(user_id, "z" * 20)
 
-    # Code path 2.1: Recovery code matches a stored recovery code (Successful Verification)
+    # Recovery code matches a stored recovery code (Successful Verification)
     assert tfa.verify(user_id, recovery_code)
 
-    # Code path 2.1.1: Recovery codes are case-insensitive (Successful Verification)
+    # Recovery codes are case-insensitive (Successful Verification)
     d.engine.execute("""
             INSERT INTO twofa_recovery_codes (userid, recovery_code)
             VALUES ( (%(userid)s), (%(code)s) )
     """, userid=user_id, code=recovery_code)
     assert tfa.verify(user_id, 'a' * 20)
 
-    # Code path 2.2: Recovery codes are consumed upon use (consumed in 2.1) (Unsuccessful Verification)
+    # Recovery codes are consumed upon use (consumed previously) (Unsuccessful Verification)
     assert not tfa.verify(user_id, recovery_code)
+
+    # When parameter `consume_recovery_code` is set to False, a recovery code is not consumed.
+    d.engine.execute("""
+            INSERT INTO twofa_recovery_codes (userid, recovery_code)
+            VALUES ( (%(userid)s), (%(code)s) )
+    """, userid=user_id, code=recovery_code)
+    assert tfa.get_number_of_recovery_codes(user_id) == 1
+    assert tfa.verify(user_id, 'a' * 20, consume_recovery_code=False)
+    assert tfa.get_number_of_recovery_codes(user_id) == 1
