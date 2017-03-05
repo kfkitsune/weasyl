@@ -138,6 +138,12 @@ def verify_account_(request):
 
 
 @login_required
+def verify_emailchange_(request):
+    token = request.web_input(token="").token
+    
+
+
+@login_required
 def verify_premium_(request):
     premiumpurchase.verify(request.userid, request.web_input(token="").token)
     return Response(define.errorpage(

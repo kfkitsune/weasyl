@@ -3,10 +3,11 @@ from __future__ import absolute_import
 import pytz
 from translationstring import TranslationString as _
 
+from libweasyl import ratings
+from libweasyl import security
+from libweasyl import staff
 from libweasyl.html import strip_html
 from libweasyl.models import tables
-from libweasyl import ratings
-from libweasyl import staff
 
 from weasyl import define as d
 from weasyl import macro as m
@@ -536,10 +537,13 @@ def edit_userinfo(userid, form):
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
     from weasyl import login
-
+    
+    changes_made = ""
+    
     # Check that credentials are correct
     logid, logerror = login.authenticate_bcrypt(username, password, session=False)
 
+    # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:
         raise WeasylError("loginInvalid")
 
@@ -555,9 +559,19 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         elif not login.password_secure(newpassword):
             raise WeasylError("passwordInsecure")
 
+    # If we are setting a new email, then write the email into a holding table pending confirmation
+    #   that the email is valid.
     if newemail:
-        d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [newemail, userid])
+        token = security.generate_key(40)
+        d.engine.execute("""
+            INSERT INTO emailverify (userid, email, token, createtimestamp)
+            VALUES (%(userid)s, %(newemail)s, %(token)s, NOW())
+            ON CONFLICT (userid) DO
+              UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
+        """, userid=userid, newemail=newemail, token=token)
+        changes_made += "Your email change request is currently pending. An email has been sent to " + newemail + ". Follow the instructions within to finalize your email address change.\n"
 
+    # If the password is being updated, update the hash, and clear other sessions.    
     if newpassword:
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
 
@@ -568,6 +582,12 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
             WHERE userid = %(userid)s
               AND sessionid != %(currentsession)s
         """, userid=userid, currentsession=sess.sessionid)
+        changes_made += "Your password has been successfully changed. As a security precaution, you have been logged out of all other active sessions."
+
+    if changes_made != "":
+        return changes_made
+    else:
+        return False
 
 
 def edit_preferences(userid, timezone=None,
