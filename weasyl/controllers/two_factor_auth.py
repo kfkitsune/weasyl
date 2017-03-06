@@ -141,7 +141,7 @@ def tfa_init_verify_get_(request):
     IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user needs to both verify
     their password to assert ownership of their account (`tfa_init_*_()`), and needs to be provided with their
     TOTP provisioning QRcode/secret key, and prove that they have successfully loaded it to their 2FA authenticator
-    of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without 
+    of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without
     explanation.
     """
     # Return an error if 2FA is already enabled (there's nothing to do in this route)
