@@ -275,7 +275,7 @@ def test_verify():
     # TOTP token matches current expected value (Successful Verification)
     tfa_response = totp.now()
     assert tfa.verify(user_id, tfa_response)
-    
+
     # TOTP token with space successfully verifies, as some authenticators show codes like
     #   "123 456"; verify strips all spaces. (Successful Verification)
     tfa_response = totp.now()
