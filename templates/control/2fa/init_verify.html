@@ -30,11 +30,12 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 3", "Two-Factor Authenti
       Generating a new set of codes will prevent this from occurring. If this occurs, you will need
       to set-up 2FA again.
     </p>
-    <h3>Your recovery codes are...</h3>
+    <h3>Your recovery codes are:</h3>
     <ol>
       $for code in tfa_recovery_codes:
-        <li>${code}</li>
+        <li>${code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20]}</li>
     </ol>
+    <p><i>Note:</i> Spaces were added for readability, but they are <i>not</i> present in the actual codes.</p>
     <p>
       These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
       If and when used, mark each code off. Codes may be used in any order.

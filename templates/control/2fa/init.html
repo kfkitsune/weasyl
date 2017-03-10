@@ -2,25 +2,25 @@ $def with (username, error)
 $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/control/2fa/init">
+  <div class="constrained">
     $if error == "password":
       <div id="signin_error"><strong>Whoops!</strong> You entered an incorrect password.</div>
 
+    <a href="#begin-setup" style="float:right;">(Skip FAQ)</a>
+
     <h3>Two-Factor Authentication</h3>
-    <label>So... what is Two-Factor Authentication?</label>
+    <label>What is Two-Factor Authentication?</label>
     <p>
-      Two-factor authentication (2FA)--also known as multi-factor authentication (MFA)--is a method to enhance the security of
-      your account. Your ability to prove you have legitimate access to a resource can be done via showing <i>something you know</i>
-      (such as a username and password); providing <i>something you have</i> (such as smartcard); or displaying <i>something you are</i>
-      (such as an iris scan or a fingerprint). You may already use 2FA in the form of withdrawing money from an ATM (you <i>know</i>
-      your PIN, and your <i>have</i> your debit card). For additional information, please see <a href="https://en.wikipedia.org/wiki/Multi-factor_authentication">Wikipedia's
-      article on MFA</a> as a good starting point for learning about it.
+      Two-factor authentication (2FA) is a method to enhance the security of your account. By providing an additional
+      piece--or factor--of information during the authentication process only you know or have, you are strongly proving
+      that you are who you claim to be. A good example of 2FA is withdrawing money from an ATM as only you <i>know</i>
+      your PIN, and you <i>have</i> your debit card.
     </p>
     <label>How can 2FA help protect my Weasyl account?</label>
     <p>
-      By enabling 2FA through the link below, you will set-up an authenticator to generate a time-based
-      password through an application such as <a href="https://support.google.com/accounts/answer/1066447?hl=en">Google Authenticator</a>.
-      When you log into your Weasyl account, you will be prompted for the token shown on your authenticator
+      By enabling 2FA, you will set-up an authenticator to generate a time-based password through an application
+      such as <a href="https://support.google.com/accounts/answer/1066447?hl=en">Google Authenticator</a>.
+      Each time that you log into your Weasyl account, you will be prompted for the token shown on your authenticator
       after your password is verified. Without both of these factors, you--or someone who compromised your
       password--cannot log into your account.
     <label>What if I can't access my authenticator?</label>
@@ -30,11 +30,12 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       to log into your account. These codes should be printed or otherwise saved in a secure manner,
       with the same dilligence and care that you would take when safeguarding other personal information.
     </p>
-    <label>Sounds great! How can I begin?</label>
-    <p>
-      Continue reading below, and follow the instructions provided. It's as simple as that.
-    </p>
+
     <hr />
+
+    <a href="#begin-setup" class="faq-permalink">Link</a>
+    <h3 id="begin-setup">Begin setting up 2FA</h3>
+
     <p><strong>Username: $:{MARKDOWN_EXCERPT(username)}</strong></p>
     <p>
       You are about to enable 2FA for the Weasyl account identified above.
@@ -47,15 +48,16 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       To begin, we need to confirm that you have control over this account. Please enter your password to continue.
     </p>
 
-    <h3>Confirm your Password</h3>
-    <label for="login-pass">Password</label>
-    <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
+    <form method="POST" class="form skinny clear" action="/control/2fa/init">
+      $:{CSRF()}
 
-    $:{CSRF()}
+      <label for="login-pass">Confirm your Password</label>
+      <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
 
-    <div style="padding-top: 1em;">
-      <a class="button negative" href="/control/2fa/status">Cancel</a>
-      <button class="button positive" name="action" value="continue">Continue</button>
-    </div>
-  </form>
+      <div style="padding-top: 1em;">
+        <a class="button negative" href="/control/2fa/status">Cancel</a>
+        <button class="button positive" name="action" value="continue">Continue</button>
+      </div>
+    </form>
+  </div>
 </div>
