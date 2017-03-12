@@ -6,29 +6,16 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     $if error == "password":
       <div id="signin_error"><strong>Whoops!</strong> You entered an incorrect password.</div>
 
-    <a href="#begin-setup" style="float:right;">(Skip FAQ)</a>
-
     <h3>Two-Factor Authentication</h3>
-    <label>What is Two-Factor Authentication?</label>
     <p>
-      Two-factor authentication (2FA) is a method to enhance the security of your account. By providing an additional
-      piece--or factor--of information during the authentication process only you know or have, you are strongly proving
-      that you are who you claim to be. A good example of 2FA is withdrawing money from an ATM as only you <i>know</i>
-      your PIN, and you <i>have</i> your debit card.
-    </p>
-    <label>How can 2FA help protect my Weasyl account?</label>
-    <p>
-      By enabling 2FA, you will set-up an authenticator to generate a time-based password through an application
-      such as <a href="https://support.google.com/accounts/answer/1066447?hl=en">Google Authenticator</a>.
-      Each time that you log into your Weasyl account, you will be prompted for the token shown on your authenticator
-      after your password is verified. Without both of these factors, you--or someone who compromised your
-      password--cannot log into your account.
-    <label>What if I can't access my authenticator?</label>
-    <p>
-      If your authenticator becomes unusable for any reason, you will receive ten recovery codes
-      as part of the 2FA setup process. Providing one of these codes will function as an alternate means
-      to log into your account. These codes should be printed or otherwise saved in a secure manner,
-      with the same dilligence and care that you would take when safeguarding other personal information.
+      This process will guide you through enabling Two-Factor Authentication (2FA), a method of enhancing the security of
+      your Weasyl account. For more information about 2FA, please visit the <a href="/help/two_factor_authentication">2FA help page</a>. As part of this
+      process, you will:
+      <ol>
+        <li>Confirm that you have access to this account;</li>
+        <li>Set-up your authenticator application; and finally</li>
+        <li>Be presented a set of recovery codes used to regain access if you lose your authenticator.</li>
+      </ol>
     </p>
 
     <hr />
@@ -41,7 +28,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       You are about to enable 2FA for the Weasyl account identified above.
       In order to proceed through this process, you will need a compatible app such as
       <a href="https://support.google.com/accounts/answer/1066447?hl=en">Google Authenticator</a> for Android and iOS devices,
-      or <a href="http://www.nongnu.org/oath-toolkit/">OATH Toolkit</a> for Linux (<code>sudo apt-get install oathtool</code>),
+      or <a href="http://www.nongnu.org/oath-toolkit/">OATH Toolkit</a> for Linux,
       to generate time-based tokens each time you log into your Weasyl account.
     </p>
     <p>
