@@ -49,12 +49,12 @@ def run_periodic_tasks():
         if now.hour == 0 and now.minute == 0:
             db.execute("DELETE FROM forgotpassword WHERE set_time < %(expiry)s", expiry=time_now - 86400)
             log.msg('cleared old forgotten password requests')
-        
+
         # Delete email reset requests older than two days
         if now.hour == 0 and now.minute == 0:
             db.execute("""
                 DELETE FROM emailverify
-                WHERE createtimestamp < (createtimestamp - INTERVAL '2 days')
+                WHERE createtimestamp < (NOW() - INTERVAL '2 days')
             """)
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

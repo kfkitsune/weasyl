@@ -10,6 +10,7 @@ from libweasyl.html import strip_html
 from libweasyl.models import tables
 
 from weasyl import define as d
+from weasyl import emailer
 from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
@@ -536,10 +537,29 @@ def edit_userinfo(userid, form):
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
+    """
+    Edit the email address and/or password for a given Weasyl account.
+
+    After verifying the user's current login credentials, edit the user's email address and/or
+    password if validity checks pass. If the email is modified, a confirmation email is sent
+    to the user's target email with a token which, if used, finalizes the email address change.
+
+    Parameters:
+        userid: The `userid` of the Weasyl account to modify.
+        username: User-entered username for password-based authentication.
+        password: The user's current plaintext password.
+        newemail: If changing the email on the account, the new email address. Optional.
+        newemailcheck: A verification field for the above to serve as a typo-check. Optional,
+        but mandatory if `newemail` provided.
+        newpassword: If changing the password, the user's new password. Optional.
+        newpasswordcheck: Verification field for `newpassword`. Optional, but mandatory if
+        `newpassword` provided.
+    """
     from weasyl import login
-    
+
+    #Track if any changes were made for later display back to the user.
     changes_made = ""
-    
+
     # Check that credentials are correct
     logid, logerror = login.authenticate_bcrypt(username, password, session=False)
 
@@ -563,6 +583,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     #   that the email is valid.
     if newemail:
         token = security.generate_key(40)
+        # Store the current token & email, updating them to overwrite a previous attempt if needed
         d.engine.execute("""
             INSERT INTO emailverify (userid, email, token, createtimestamp)
             VALUES (%(userid)s, %(newemail)s, %(token)s, NOW())
@@ -570,12 +591,16 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
               UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
         """, userid=userid, newemail=newemail, token=token)
         changes_made += "Your email change request is currently pending. An email has been sent to " + newemail + ". Follow the instructions within to finalize your email address change.\n"
+        # Send out the email containing the verification token.
+        emailer.append([newemail], None, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
 
-    # If the password is being updated, update the hash, and clear other sessions.    
+    # If the password is being updated, update the hash, and clear other sessions.
     if newpassword:
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
 
         # Invalidate all sessions for `userid` except for the current one
+        # NB: THIS WILL NEED TO BE SWAPPED FOR THE FUNCTION LEVEL CHANGE IN THE 2FA branch
+        # WHARRGHARBL.
         sess = d.get_weasyl_session()
         d.engine.execute("""
             DELETE FROM sessions

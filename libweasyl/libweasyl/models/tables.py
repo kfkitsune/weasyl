@@ -1,12 +1,12 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
     Integer, String, Text, SMALLINT, text, DateTime, func)
+
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
 from libweasyl import constants
-
 
 metadata = MetaData()
 
@@ -216,6 +216,8 @@ emailverify = Table(
     Column('token', String(length=100), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='emailverify_userid_fkey'),
 )
+
+Index('ind_emailverify_token', emailverify.c.token)
 
 
 favorite = Table(

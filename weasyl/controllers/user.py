@@ -138,9 +138,14 @@ def verify_account_(request):
 
 
 @login_required
-def verify_emailchange_(request):
+def verify_emailchange_get_(request):
     token = request.web_input(token="").token
-    
+    email = login.verify_email_change(request.userid, token)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** Your email address was successfully updated to **" + email + "**.",
+        [["Return to the Home Page", "/"]]
+    ))
 
 
 @login_required
