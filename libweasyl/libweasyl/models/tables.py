@@ -1,7 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
     Integer, String, Text, SMALLINT, text, DateTime, func)
-
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
 from libweasyl.models.helpers import (
