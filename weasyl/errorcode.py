@@ -53,7 +53,7 @@ error_messages = {
     "cannotIgnoreSelf": "You cannot ignore yourself.",
     "cannotIgnoreStaff": "You are not allowed to ignore this site staff member.",
     "ChangeEmailVerificationTokenIncorrect": (
-        "The verification token received was either incorrect, or the time frame "
+        "The verification token submitted was either incorrect, or the time frame "
         "for verifying the pending email change has expired. Please attempt to change "
         "your email address once again if you still wish to change it."),
     "characterNameInvalid": "You did not enter a character name.",

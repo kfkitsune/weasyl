@@ -320,8 +320,8 @@ def verify_email_change(userid, token):
     a WeasylError upon unsuccessful verification.
     """
     # Sanity checks: Must have userid and token
-    if not userid and not token:
-        pass
+    if not userid or not token:
+        raise WeasylError("Unexpected")
     query_result = d.engine.scalar("""
         DELETE FROM emailverify
         WHERE userid = %(userid)s AND token = %(token)s
