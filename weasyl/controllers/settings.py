@@ -211,8 +211,10 @@ def control_editemailpassword_post_(request):
     if not newemail and not newemailcheck and form.newemail != "" and form.newemailcheck != "":
         raise WeasylError("emailInvalid")
 
-    return_message = profile.edit_email_password(request.userid, form.username, form.password,
-                                newemail, newemailcheck, form.newpassword, form.newpasscheck)
+    return_message = profile.edit_email_password(
+        request.userid, form.username, form.password, newemail, newemailcheck,
+        form.newpassword, form.newpasscheck
+    )
 
     if not return_message:  # No changes were made
         message = "No changes were made to your account."

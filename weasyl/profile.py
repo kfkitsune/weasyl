@@ -557,7 +557,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     """
     from weasyl import login
 
-    #Track if any changes were made for later display back to the user.
+    # Track if any changes were made for later display back to the user.
     changes_made = ""
 
     # Check that credentials are correct
