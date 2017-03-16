@@ -175,7 +175,6 @@ def test_edit_email_password():
         newemail=newemailaddr, newemailcheck=newemailaddr,
         newpassword="", newpasscheck=""
     )
-    current_timestamp = arrow.utcnow().timestamp
     assert "Your email change request is currently pending" in result
     query = d.engine.execute("""
         SELECT userid, email, token, createtimestamp
