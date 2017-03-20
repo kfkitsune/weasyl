@@ -195,6 +195,10 @@ def resetpassword_post_(request):
     form = request.web_input(token="", username="", email="", day="", month="", year="", password="", passcheck="")
 
     resetpassword.reset(form)
+
+    # Invalidate all other user sessions for this user.
+    profile.invalidate_other_sessions(USERID)
+
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your password has been reset and you may now sign in to your account.",
@@ -211,6 +215,10 @@ def force_resetpassword_(request):
     form = request.web_input(password="", passcheck="")
 
     resetpassword.force(request.userid, form)
+
+    # Invalidate all other user sessions for this user.
+    profile.invalidate_other_sessions(userid)
+
     raise HTTPSeeOther(location="/", headers=request.response.headers)
 
 

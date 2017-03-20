@@ -599,20 +599,34 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
 
         # Invalidate all sessions for `userid` except for the current one
-        # NB: THIS WILL NEED TO BE SWAPPED FOR THE FUNCTION LEVEL CHANGE IN THE 2FA branch
-        # WHARRGHARBL.
-        sess = d.get_weasyl_session()
-        d.engine.execute("""
-            DELETE FROM sessions
-            WHERE userid = %(userid)s
-              AND sessionid != %(currentsession)s
-        """, userid=userid, currentsession=sess.sessionid)
+        invalidate_other_sessions(userid)
+
         changes_made += "Your password has been successfully changed. As a security precaution, you have been logged out of all other active sessions."
 
     if changes_made != "":
         return changes_made
     else:
         return False
+
+
+def invalidate_other_sessions(userid):
+    """
+    Invalidate all HTTP sessions for `userid` except for the current session.
+
+    Useful as a security precaution, such as if a user changes their password, or enables
+    2FA.
+
+    Parameters:
+        userid: The userid for the account to clear sessions from.
+
+    Returns: Nothing.
+    """
+    sess = d.get_weasyl_session()
+    d.engine.execute("""
+        DELETE FROM sessions
+        WHERE userid = %(userid)s
+          AND sessionid != %(currentsession)s
+    """, userid=userid, currentsession=sess.sessionid)
 
 
 def edit_preferences(userid, timezone=None,
