@@ -100,7 +100,9 @@ class ProfileManageTestCase(unittest.TestCase):
 
 
 @pytest.mark.usefixtures('db', 'drop_email')
-def test_edit_email_password():
+def test_edit_email_password(monkeypatch):
+    monkeypatch.setattr(profile, 'invalidate_other_sessions', lambda x: '')
+
     from weasyl.login import verify_email_change
 
     password = "01234556789"
@@ -138,16 +140,13 @@ def test_edit_email_password():
         )
     assert 'passwordMismatch' == err.value.value
 
-    # CURRENTLY EXPECTED TO FAIL. Need to have session reset code split into its own function to be able
-    #   to monkeypatch the code off. Failure mode is because other sessions are terminated upon
-    #   successfully changing the password.
     # Case 5: Changes, new password only, password change succeeds
-    # result = profile.edit_email_password(
-    #        userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-    #        newpassword="1122334455", newpasscheck="1122334455"
-    # )
-    # assert "Your password has been successfully changed" in result
-    # password = "1122334455"
+    result = profile.edit_email_password(
+           userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
+           newpassword="1122334455", newpasscheck="1122334455"
+    )
+    assert "Your password has been successfully changed" in result
+    password = "1122334455"
 
     # Case 6: Changes, new email only, email mismatch
     with pytest.raises(WeasylError) as err:
@@ -211,3 +210,13 @@ def test_edit_email_password():
         WHERE userid = %(userid)s
     """, userid=userid)
     assert query == QEMAIL
+
+    # Case 9: Email and password changed at the same time.
+    newemailaddr = "testD@weasyl.com"
+    newpassword = "test123_test123_test123"
+    result = profile.edit_email_password(
+        userid=userid, username=username, password=password, newemail=newemailaddr, newemailcheck=newemailaddr,
+        newpassword=newpassword, newpasscheck=newpassword
+    )
+    assert "Your password has been successfully changed" in result
+    assert "Your email change request is currently pending" in result

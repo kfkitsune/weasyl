@@ -197,7 +197,7 @@ def resetpassword_post_(request):
     resetpassword.reset(form)
 
     # Invalidate all other user sessions for this user.
-    profile.invalidate_other_sessions(USERID)
+    profile.invalidate_other_sessions(request.userid)
 
     return Response(define.errorpage(
         request.userid,
@@ -217,7 +217,7 @@ def force_resetpassword_(request):
     resetpassword.force(request.userid, form)
 
     # Invalidate all other user sessions for this user.
-    profile.invalidate_other_sessions(userid)
+    profile.invalidate_other_sessions(request.userid)
 
     raise HTTPSeeOther(location="/", headers=request.response.headers)
 
