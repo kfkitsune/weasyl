@@ -504,11 +504,15 @@ def edit_userinfo(userid, form):
         row['userid'] = userid
         social_rows.append(row)
 
+    # Enforce attribute length limits
+    gender = form.gender[0:100].strip()  # Max length = 100
+    country = form.country[0:50].strip()  # Max length = 50
+
     d.engine.execute("""
         UPDATE userinfo
         SET gender = %(gender)s, country = %(country)s
         WHERE userid = %(userid)s
-    """, userid=userid, gender=form.gender.strip(), country=form.country.strip())
+    """, userid=userid, gender=gender, country=country)
     d.engine.execute("""
         DELETE FROM user_links
         WHERE userid = %(userid)s
