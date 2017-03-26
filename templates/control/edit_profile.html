@@ -110,11 +110,11 @@ $code:
       $for site, values in userinfo['sorted_user_links']:
         $for value in values:
           <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site">
+            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site Name" maxlength="64">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
       <div class="group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site">
+        <input type="text" class="input site-name" name="site_names" placeholder="Site Name" maxlength="64">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
       </div>
       <div class="group">
