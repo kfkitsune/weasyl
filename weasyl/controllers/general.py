@@ -79,6 +79,10 @@ def search_(request):
             search.COUNT_LIMIT,
         ]))
     elif form.find:
+        # Input validation
+        if form.find not in ("submit", "char", "journal", "user"):
+            form.find = "submit"
+
         query = search.browse(request.userid, rating, 66, form)
 
         meta = {
