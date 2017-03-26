@@ -6,6 +6,7 @@ from pyramid.response import Response
 from sqlalchemy.orm import joinedload
 
 from libweasyl import ratings
+from libweasyl import security
 from libweasyl import staff
 from libweasyl.media import get_multi_user_media
 from libweasyl.models.site import SiteUpdate
@@ -41,10 +42,10 @@ def search_(request):
             "find": search_query.find,
             "within": form.within,
             "rated": set('gmap') & set(form.rated),
-            "cat": int(form.cat) if form.cat else None,
-            "subcat": int(form.subcat) if form.subcat else None,
-            "backid": int(form.backid) if form.backid else None,
-            "nextid": int(form.nextid) if form.nextid else None,
+            "cat": security.input_validation_integer(form.cat) if form.cat else None,
+            "subcat": security.input_validation_integer(form.subcat) if form.subcat else None,
+            "backid": security.input_validation_integer(form.backid) if form.backid else None,
+            "nextid": security.input_validation_integer(form.nextid) if form.nextid else None,
         }
 
         if search_query.find == "user":
@@ -82,7 +83,7 @@ def search_(request):
 
         meta = {
             "find": form.find,
-            "cat": int(form.cat) if form.cat else None,
+            "cat": security.input_validation_integer(form.cat) if form.cat else None,
         }
 
         page.append(define.render("etc/search.html", [
