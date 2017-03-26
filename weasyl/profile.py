@@ -498,7 +498,7 @@ def edit_userinfo(userid, form):
             continue
         row = {
             'userid': userid,
-            'link_type': site_name,
+            'link_type': site_name[0:64],  # Max length = 64
             'link_value': site_value,
         }
         row['userid'] = userid
