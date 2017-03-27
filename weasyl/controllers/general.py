@@ -28,11 +28,12 @@ def search_(request):
 
     page = define.common_page_start(request.userid, title="Browse and search")
 
+    # Input hardening/validation; form.find can only be certain values
+    if form.q or form.find and form.find not in ("submit", "char", "journal", "user"):
+        form.find = "submit"
+
     if form.q:
         find = form.find
-
-        if find not in ("submit", "char", "journal", "user"):
-            find = "submit"
 
         q = form.q.strip()
         search_query = search.Query.parse(q, find)
@@ -79,10 +80,6 @@ def search_(request):
             search.COUNT_LIMIT,
         ]))
     elif form.find:
-        # Input validation
-        if form.find not in ("submit", "char", "journal", "user"):
-            form.find = "submit"
-
         query = search.browse(request.userid, rating, 66, form)
 
         meta = {
