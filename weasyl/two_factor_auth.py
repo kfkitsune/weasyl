@@ -271,7 +271,7 @@ def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
     
     # Then attempt to hash the input code versus the stored code(s).
     for recovery_code_hash in recovery_codes:
-        if bcrypt.checkpw(tfa_code, recovery_code_hash):
+        if bcrypt.checkpw(tfa_code.encode('utf-8'), recovery_code_hash):
             # We have a match! If we are deleting the code, do it now.
             if consume_recovery_code:
                 d.engine.execute("""
