@@ -7,7 +7,6 @@ import random
 import urllib
 import hashlib
 import logging
-import numbers
 import datetime
 import urlparse
 import functools
@@ -504,11 +503,16 @@ def get_display_name(userid):
 
 
 def get_int(target):
-    if isinstance(target, numbers.Number):
-        return int(target)
-
+    """
+    Attempt to convert `target` to an Integer, otherwise returns zero if an exception is thrown.
+    
+    Parameters: An item to attempt to convert to an Integer (such as a string).
+    
+    Returns: The integer representation of `target`--dropping any decimals--if `target` can be
+    resolved to an int(), otherwise zero (0).
+    """
     try:
-        return int("".join(i for i in target if i.isdigit()))
+        return int(float(target))
     except:
         return 0
 
