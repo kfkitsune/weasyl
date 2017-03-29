@@ -104,7 +104,7 @@ def resolve(userid, otherid, othername, myself=True):
     result = None
 
     if otherid:
-        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], ["element"])
+        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int_DEPRECIATED(otherid)], ["element"])
 
         if result:
             return result
