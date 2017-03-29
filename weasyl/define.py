@@ -506,9 +506,9 @@ def get_display_name(userid):
 def get_int(target):
     """
     Attempt to convert `target` to an Integer, otherwise returns zero if an exception is thrown.
-    
+
     Parameters: An item to attempt to convert to an Integer (such as a string).
-    
+
     Returns: The integer representation of `target`--dropping any decimals--if `target` can be
     resolved to an int(), otherwise zero (0).
     """
@@ -521,14 +521,13 @@ def get_int(target):
 def get_int_DEPRECIATED(target):
     """
     As on the tin, this function is depreciated. It does not return correct results as one might expect in 100% of the cases.
-    
+
     Existing code should have this function replaced with get_int() if it can be verified if there is no negative consequence
     in doing so.
-    
+
     Examples of this incorrect behavior:
       - get_int_DEPRECIATED('123.234') => 123234
       - get_int_DEPRECIATED('123aaaaaaa2234') => 1232234
-      - 
     """
     if isinstance(target, numbers.Number):
         return int(target)
