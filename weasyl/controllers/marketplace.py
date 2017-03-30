@@ -8,7 +8,7 @@ from weasyl import define, media, commishinfo
 def search_(request):
     form = request.web_input(q="", min="", max="", currency="", pc="", c="", o="")
     limit = 30
-    offset = define.get_int_DEPRECIATED(form.o)
+    offset = define.get_int(form.o)
     commishclass = form.pc if form.pc else form.c
     commishclass = commishclass.lower()
 
