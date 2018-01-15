@@ -73,17 +73,15 @@ $def with (options=None, active_users_string='')
 
 </div><!-- /page-container -->
 
-<script src="${CDNIFY('/static/jquery-2.2.4.min.js')}"></script>
-<script src="${CDNIFY('/static/typeahead.bundle.min.js')}"></script>
-<script src="${CDNIFY('/static/marked.js?' + SHA)}"></script>
-<script src="${CDNIFY('/static/scripts.js?' + SHA)}"></script>
+<!-- Minified JS: See gulpfile.js -->
+<script src="${resource_path('scripts/main.min.js')}"></script>
 
 $if options and "imageselect" in options:
   <script src="${CDNIFY('/static/scripts/imageselect/imageselect.js?' + SHA)}"></script>
   $:{RENDER("common/image_select.html", ["square_select" in options])}
 
 $if options and 'search' in options:
-  <script src="${CDNIFY('/static/search.js?' + SHA)}"></script>
+  <script src="${CDNIFY('/static/scripts/search.js?' + SHA)}"></script>
 
 </body>
 </html>
