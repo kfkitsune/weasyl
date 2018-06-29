@@ -69,7 +69,7 @@ def load_staff_dict():
         json_staff = json.load(config_file)['staff_levels']
         return {
             "directors": list(json_staff['directors'].values()),
-            "technical_staff": list(json_staff['technical'].values()),
+            "technical_staff": list(json_staff['technical_staff'].values()),
             "admins": list(json_staff['admins'].values()),
             "mods": list(json_staff['mods'].values()),
             "developers": list(json_staff['developers'].values()),
