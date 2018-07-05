@@ -30,8 +30,11 @@ def _insert_recovery_code(userid):
 def _insert_2fa_secret(user_id, tfa_secret_encrypted):
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
+        SET twofa_totp_enabled = TRUE
+        WHERE userid = %(userid)s;
+        
+        INSERT INTO twofa_totp_secrets (userid, totp_secret)
+        VALUES (%(userid)s, %(tfas)s);
     """, userid=user_id, tfas=tfa_secret_encrypted)
 
 
@@ -65,20 +68,24 @@ def test_generate_recovery_codes():
 @pytest.mark.usefixtures('db')
 def test_store_recovery_codes():
     user_id = db_utils.create_user()
-    valid_code_string = "01234567890123456789,02234567890123456789,03234567890123456789,04234567890123456789,05234567890123456789,06234567890123456789,07234567890123456789,08234567890123456789,09234567890123456789,10234567890123456789"
+    valid_code_list = ["01234567890123456789","02234567890123456789",
+                       "03234567890123456789","04234567890123456789",
+                       "05234567890123456789","06234567890123456789",
+                       "07234567890123456789","08234567890123456789",
+                       "09234567890123456789","10234567890123456789"]
 
     _insert_recovery_code(user_id)
 
     # store_recovery_codes() will not accept a string of codes where the total code count is not 10
-    invalid_codes = valid_code_string.split(',').pop()
-    assert not tfa.store_recovery_codes(user_id, ','.join(invalid_codes))
+    invalid_code_list = ["01","02","03","04","05","06","07","08","09"]
+    assert not tfa.store_recovery_codes(user_id, invalid_code_list)
 
     # store_recovery_codes() will not accept a string of codes when the code length is not tfa.LENGTH_RECOVERY_CODE
-    invalid_codes = "01,02,03,04,05,06,07,08,09,10"
-    assert not tfa.store_recovery_codes(user_id, invalid_codes)
+    invalid_code_list.append("10")
+    assert not tfa.store_recovery_codes(user_id, invalid_code_list)
 
     # When a correct code list is provided, the codes will be stored successfully in the database
-    assert tfa.store_recovery_codes(user_id, valid_code_string)
+    assert tfa.store_recovery_codes(user_id, valid_code_list)
 
     # Extract the current hashed recovery codes
     query = d.engine.execute("""
@@ -88,7 +95,6 @@ def test_store_recovery_codes():
     """, userid=user_id).fetchall()
 
     # Ensure that the recovery codes can be hashed to the corresponding bcrypt hash
-    valid_code_list = valid_code_string.split(',')
     for row in query:
         code_status = False
         for code in valid_code_list:
@@ -173,7 +179,7 @@ def test_activate():
     assert not tfa.activate(user_id, tfa_secret, "000000")
     # Verify 2FA is not active
     assert not d.engine.scalar("""
-        SELECT twofa_secret
+        SELECT twofa_totp_enabled
         FROM login
         WHERE userid = %(userid)s
     """, userid=user_id)
@@ -183,8 +189,8 @@ def test_activate():
     assert tfa.activate(user_id, tfa_secret, tfa_response)
     # The stored twofa_secret must not be plaintext
     stored_secret = d.engine.scalar("""
-        SELECT twofa_secret
-        FROM login
+        SELECT totp_secret
+        FROM twofa_totp_secrets
         WHERE userid = %(userid)s
     """, userid=user_id)
     assert tfa_secret != stored_secret
@@ -220,7 +226,6 @@ def test_deactivate():
 
     # 2FA enabled, deactivated by recovery code
     _insert_2fa_secret(user_id, tfa_secret_encrypted)
-    tfa_response = totp.now()
 
     _insert_recovery_code(user_id)
     assert tfa.deactivate(user_id, recovery_code)

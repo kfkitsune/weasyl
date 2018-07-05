@@ -150,10 +150,17 @@ def activate(userid, tfa_secret, tfa_response):
         # Encrypt the 2FA secret prior to storing it into `userid`'s login record
         tfa_secret_encrypted = _encrypt_totp_secret(tfa_secret)
         d.engine.execute("""
+            BEGIN;
+            
             UPDATE login
-            SET twofa_secret = %(tfa_secret)s
-            WHERE userid = %(userid)s
-        """, tfa_secret=tfa_secret_encrypted, userid=userid)
+            SET twofa_totp_enabled = TRUE
+            WHERE userid = %(userid)s;
+            
+            INSERT INTO twofa_totp_secrets (userid, totp_secret)
+            VALUES (%(userid)s, %(totp_secret)s)
+            
+            COMMIT;
+        """, totp_secret=tfa_secret_encrypted, userid=userid)
         return True
     else:
         return False
@@ -162,7 +169,7 @@ def activate(userid, tfa_secret, tfa_response):
 def verify(userid, tfa_response, consume_recovery_code=True):
     """
     Verify a 2FA-enabled user's 2FA challenge-response against the stored
-    2FA secret.
+    2FA secret(s).
 
     Parameters:
         userid: The userid to compare the 2FA challenge-response against.
@@ -178,18 +185,22 @@ def verify(userid, tfa_response, consume_recovery_code=True):
     #   implementations display the code as "123 456"
     tfa_response = tfa_response.replace(' ', '')
     if len(tfa_response) == LENGTH_TOTP_CODE:
-        # Retrieve the encrypted 2FA secret from `userid`'s login record
-        tfa_secret_encrypted = d.engine.scalar("""
-            SELECT twofa_secret
-            FROM login
+        # Retrieve the encrypted 2FA secret(s) from `userid`'s records record
+        tfa_secrets_encrypted = d.engine.execute("""
+            SELECT totp_secret
+            FROM twofa_totp_secrets
             WHERE userid = %(userid)s
-        """, userid=userid)
-        # Decrypt the 2FA secret to be usable by pyotp
-        tfa_secret = _decrypt_totp_secret(tfa_secret_encrypted)
-        # Validate supplied 2FA response versus calculated current TOTP value.
-        totp = pyotp.TOTP(tfa_secret)
+        """, userid=userid).fetchall()
+        for row in tfa_secrets_encrypted:
+            # Decrypt the 2FA secret to be usable by pyotp
+            tfa_secret = _decrypt_totp_secret(row['totp_secret'])
+            # Validate supplied 2FA response versus calculated current TOTP value.
+            totp_response_was_valid = pyotp.TOTP(tfa_secret).verify(tfa_response, valid_window=1)
+            if totp_response_was_valid:
+                # If we have at least one valid response, then that is all we need; return True
+                return True
         # Return the response of the TOTP verification; True/False
-        return totp.verify(tfa_response)
+        return False
     elif len(tfa_response) == LENGTH_RECOVERY_CODE:
         # Check if `tfa_response` is valid recovery code; consume according to `consume_recovery_code`,
         #  and return True if valid, False otherwise
@@ -236,27 +247,26 @@ def generate_recovery_codes():
 
 def store_recovery_codes(userid, recovery_codes):
     """
-    Store generated recovery codes into the recovery code table, checking for validity.
+    Store generated recovery codes into the recovery code table, checking for validity. We store recovery codes on the
+    server in the session during presentation to the user, so they are guaranteed to be uppercase already.
 
     Parameters:
         userid: The userid to save the recovery codes for.
-        recovery_codes: Comma separated unicode string of recovery codes.
+        recovery_codes: A [list] of recovery codes.
 
     Returns: Boolean True if the codes were successfully saved to the database, otherwise
     Boolean False
     """
-    # Force the incoming string to uppercase, then split into a list
-    codes = recovery_codes.upper().split(',')
     # The list must exist and be equal to the current codes to generate
-    if len(codes) != _TFA_RECOVERY_CODES:
+    if len(recovery_codes) != _TFA_RECOVERY_CODES:
         return False
     # Make sure all codes are `LENGTH_RECOVERY_CODE` characters long, as expected
-    for code in codes:
+    for code in recovery_codes:
         if len(code) != LENGTH_RECOVERY_CODE:
             return False
 
     # Store the recovery codes securely by hashing them with bcrypt
-    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
+    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in recovery_codes]
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""
@@ -330,7 +340,7 @@ def is_2fa_enabled(userid):
     Returns: Boolean True if 2FA is enabled for ``userid``, otherwise Boolean False.
     """
     return d.engine.scalar("""
-        SELECT twofa_secret IS NOT NULL
+        SELECT twofa_totp_enabled
         FROM login
         WHERE userid = %(userid)s
     """, userid=userid)
@@ -373,7 +383,10 @@ def force_deactivate(userid):
         BEGIN;
 
         UPDATE login
-        SET twofa_secret = NULL
+        SET twofa_totp_enabled = FALSE
+        WHERE userid = %(userid)s;
+
+        DELETE FROM twofa_totp_secrets
         WHERE userid = %(userid)s;
 
         DELETE FROM twofa_recovery_codes

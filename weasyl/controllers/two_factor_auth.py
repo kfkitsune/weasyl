@@ -17,40 +17,38 @@ from weasyl.error import WeasylError
 from weasyl.profile import invalidate_other_sessions
 
 
-def _set_totp_code_on_session(totp_code):
+def _store_information_on_session(key=None, value=None):
+    """
+    Stores TOTP information on the session in the specified key/value pair.
+    :param key: The name of the key.
+    :param value: The value of the key.
+    :return: None
+    """
     sess = define.get_weasyl_session()
-    sess.additional_data['2fa_totp_code'] = totp_code
+    key_name = "2fa_totp_" + key
+    sess.additional_data[key_name] = value
     sess.save = True
 
 
-def _get_totp_code_from_session():
+def _retrieve_information_from_session(key=None):
+    """
+    Retrieves TOTP information from the session.
+    :param key: The name of the key to retrieve a value from
+    :return: The value from the specified key.
+    """
     sess = define.get_weasyl_session()
-    return sess.additional_data['2fa_totp_code']
-
-
-def _set_recovery_codes_on_session(recovery_codes):
-    sess = define.get_weasyl_session()
-    sess.additional_data['2fa_recovery_codes'] = recovery_codes
-    sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.now().timestamp
-    sess.save = True
-
-
-def _get_recovery_codes_from_session():
-    sess = define.get_weasyl_session()
-    if '2fa_recovery_codes' in sess.additional_data:
-        return sess.additional_data['2fa_recovery_codes']
-    else:
-        return None
+    key_name = "2fa_totp_" + key
+    return sess.additional_data[key_name]
 
 
 def _cleanup_session():
+    """
+    Cleans a Weasyl session of temporary 2FA setup information, deleting the data if it is stored on the session.
+    """
     sess = define.get_weasyl_session()
-    if '2fa_recovery_codes' in sess.additional_data:
-        del sess.additional_data['2fa_recovery_codes']
-    if '2fa_recovery_codes_timestamp' in sess.additional_data:
-        del sess.additional_data['2fa_recovery_codes_timestamp']
-    if '2fa_totp_code' in sess.additional_data:
-        del sess.additional_data['2fa_totp_code']
+    for key in sess.additional_data.keys():
+        if key.startswith("2fa_totp_"):
+            del sess.additional_data[key]
     sess.save = True
 
 
@@ -82,18 +80,16 @@ def tfa_init_post_(request):
             define.get_display_name(request.userid),
             "password"
         ], title="Enable 2FA: Step 1"))
-    # Unlikely that this block will get triggered, but just to be safe, check for it
-    elif status == "unicode-failure":
-        raise HTTPSeeOther(location='/signin/unicode-failure')
     # The user has authenticated, so continue with the initialization process.
     else:
         tfa_secret, tfa_qrcode = tfa.init(request.userid)
-        _set_totp_code_on_session(tfa_secret)
-        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
+        _store_information_on_session(key="tfa_secret", value=tfa_secret)
+        return Response(define.webpage(request.userid, "control/2fa/qrcode.html", [
             define.get_display_name(request.userid),
             tfa_secret,
             tfa_qrcode,
-            None
+            None,
+            False,
         ], title="Enable 2FA: Step 2"))
 
 
@@ -119,21 +115,26 @@ def tfa_init_qrcode_get_(request):
 def tfa_init_qrcode_post_(request):
     # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
     tfaresponse = request.params['tfaresponse'].replace(' ', '')
-    tfa_secret_sess = _get_totp_code_from_session()
+    tfa_secret = _retrieve_information_from_session(key="tfa_secret")
+    print(tfa_secret)
+
+    # TODO: Implement
+    #_store_information_on_session(key="authenticator_comment", value=request.params['comment'])
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret_sess, tfaresponse)
+    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret, tfaresponse)
 
     # The 2FA TOTP code did not match with the generated 2FA secret
     if not tfa_secret:
-        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
+        return Response(define.webpage(request.userid, "control/2fa/qrcode.html", [
             define.get_display_name(request.userid),
-            tfa_secret_sess,
-            tfa.generate_tfa_qrcode(request.userid, tfa_secret_sess),
-            "2fa"
+            tfa_secret,
+            tfa.generate_tfa_qrcode(request.userid, tfa_secret),
+            "2fa",
+            False,
         ], title="Enable 2FA: Step 2"))
     else:
-        _set_recovery_codes_on_session(','.join(recovery_codes))
+        _store_information_on_session(key="recovery_codes", value=recovery_codes)
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
             recovery_codes,
             None
@@ -164,17 +165,15 @@ def tfa_init_verify_get_(request):
 def tfa_init_verify_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
-    tfasecret = _get_totp_code_from_session()
-    tfaresponse = request.params['tfaresponse']
-    tfarecoverycodes = _get_recovery_codes_from_session()
+    tfa_secret = _retrieve_information_from_session(key="tfa_secret")
+    # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
+    tfa_response = request.params['tfaresponse'].replace(' ', '')
+    tfa_recovery_codes = _retrieve_information_from_session(key="recovery_codes")
 
     # Does the user want to proceed with enabling 2FA?
-    if verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
-        # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
-        tfaresponse = request.params['tfaresponse'].replace(' ', '')
-
+    if verify_checkbox and tfa.store_recovery_codes(request.userid, tfa_recovery_codes):
         # TOTP+2FA Secret validates (activate & redirect to status page)
-        if tfa.activate(request.userid, tfasecret, tfaresponse):
+        if tfa.activate(request.userid, tfa_secret, tfa_response):
             # Invalidate all other login sessions
             invalidate_other_sessions(request.userid)
             # Clean up the stored session variables
@@ -183,13 +182,13 @@ def tfa_init_verify_post_(request):
         # TOTP+2FA Secret did not validate
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
-                tfarecoverycodes.split(','),
+                tfa_recovery_codes,
                 "2fa"
             ], title="Enable 2FA: Final Step"))
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
-            tfarecoverycodes.split(','),
+            tfa_recovery_codes,
             "verify"
         ], title="Enable 2FA: Final Step"))
 
@@ -261,17 +260,17 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         #   a user from confusing themselves if they visit the request page twice.
         sess = request.weasyl_session
         gen_rec_codes = True
-        if '2fa_recovery_codes_timestamp' in sess.additional_data:
+        if '2fa_totp_recovery_codes_timestamp' in sess.additional_data:
             # Are the codes on the current session < 30 minutes old?
-            tstamp = sess.additional_data['2fa_recovery_codes_timestamp']
+            tstamp = sess.additional_data['2fa_totp_recovery_codes_timestamp']
             if arrow.now().timestamp - tstamp < 1800:
                 # We have recent codes on the session, use them instead of generating fresh codes.
-                recovery_codes = sess.additional_data['2fa_recovery_codes'].split(',')
+                recovery_codes = sess.additional_data['2fa_totp_recovery_codes']
                 gen_rec_codes = False
         if gen_rec_codes:
             # Either this is a fresh request to generate codes, or the timelimit was exceeded.
             recovery_codes = tfa.generate_recovery_codes()
-            _set_recovery_codes_on_session(','.join(recovery_codes))
+            _store_information_on_session(key="recovery_codes", value=recovery_codes)
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
             recovery_codes,
             None
@@ -303,13 +302,13 @@ def tfa_generate_recovery_codes_get_(request):
 def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
-    tfaresponse = request.params['tfaresponse']
-    tfarecoverycodes = _get_recovery_codes_from_session()
+    tfa_response = request.params['tfaresponse']
+    tfa_recovery_codes = _retrieve_information_from_session(key="recovery_codes")
 
     # Does the user want to save the new recovery codes?
     if verify_checkbox:
-        if tfa.verify(request.userid, tfaresponse, consume_recovery_code=False):
-            if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
+        if tfa.verify(request.userid, tfa_response, consume_recovery_code=False):
+            if tfa.store_recovery_codes(request.userid, tfa_recovery_codes):
                 # Clean up the stored session variables
                 _cleanup_session()
                 # Successfuly stored new recovery codes.
@@ -319,11 +318,11 @@ def tfa_generate_recovery_codes_post_(request):
                 raise WeasylError("Unexpected")
         else:
             return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-                tfarecoverycodes.split(','),
+                tfa_recovery_codes,
                 "2fa"
             ], title="Generate Recovery Codes: Save New Recovery Codes"))
     elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-            tfarecoverycodes.split(','),
+            tfa_recovery_codes,
             "verify"
         ], title="Generate Recovery Codes: Save New Recovery Codes"))
