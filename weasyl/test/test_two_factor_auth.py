@@ -156,17 +156,16 @@ def test_init_verify_tfa():
     user_id = db_utils.create_user()
     tfa_secret, _ = tfa.init(user_id)
 
-    # Invalid initial verification (Tuple: False, None)
-    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, "000000")
-    assert not test_tfa_secret
-    assert not test_recovery_codes
+    # Invalid initial verification (None)
+    test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, "000000")
+    assert test_recovery_codes is None
 
-    # Valid initial verification
+    # Valid initial verification (A list of recovery codes)
     totp = pyotp.TOTP(tfa_secret)
     tfa_response = totp.now()
-    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, tfa_response)
-    assert tfa_secret == test_tfa_secret
-    assert len(test_recovery_codes) == 10
+    test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, tfa_response)
+    assert isinstance(test_recovery_codes, list)
+    assert len(test_recovery_codes) == tfa._TFA_RECOVERY_CODES
 
 
 @pytest.mark.usefixtures('db')
