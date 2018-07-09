@@ -116,16 +116,15 @@ def tfa_init_qrcode_post_(request):
     # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
     tfaresponse = request.params['tfaresponse'].replace(' ', '')
     tfa_secret = _retrieve_information_from_session(key="tfa_secret")
-    print(tfa_secret)
 
     # TODO: Implement
     #_store_information_on_session(key="authenticator_comment", value=request.params['comment'])
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret, tfaresponse)
+    recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret, tfaresponse)
 
     # The 2FA TOTP code did not match with the generated 2FA secret
-    if not tfa_secret:
+    if not recovery_codes:
         return Response(define.webpage(request.userid, "control/2fa/qrcode.html", [
             define.get_display_name(request.userid),
             tfa_secret,
