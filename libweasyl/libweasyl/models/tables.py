@@ -352,12 +352,25 @@ login = Table(
         },
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
-    Column('twofa_secret', String(length=420), nullable=True),
+    Column('twofa_totp_enabled', Boolean(), server_default='f', nullable=False),
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
+
+
+twofa_totp_secrets = Table(
+    # Use a distinct table to support multiple TOTP-based authenticators
+    'twofa_totp_secrets', metadata,
+    Column('userid', Integer(), nullable=False),
+    Column('totp_secret', String(length=420), nullable=False),
+    Column('comment', String(length=100), nullable=False, server_default=''),
+    Column('createtimestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
+    default_fkey(['userid'], ['login.userid'], name='twofa_totp_secrets_userid_fkey'),
+)
+
+Index('ind_twofa_totp_secrets_userid', twofa_totp_secrets.c.userid)
 
 
 twofa_recovery_codes = Table(

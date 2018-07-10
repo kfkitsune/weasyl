@@ -48,7 +48,7 @@ def test_2fa_changes_token(app):
     resp = app.get('/')
     csrf = resp.html.find('html')['data-csrf-token']
 
-    assert tfa.store_recovery_codes(user, ','.join(tfa.generate_recovery_codes()))
+    assert tfa.store_recovery_codes(user, tfa.generate_recovery_codes())
     tfa_secret = pyotp.random_base32()
     totp = pyotp.TOTP(tfa_secret)
     tfa_response = totp.now()
