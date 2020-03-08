@@ -1,4 +1,4 @@
-$def with (profile, userinfo, relationship)
+$def with (profile, userinfo, relationship, myself, reported)
   $code:
     def _STATUS_WORD_(target):
       if(target == "o"):   return "Open"
@@ -82,6 +82,11 @@ $def with (profile, userinfo, relationship)
               <input type="hidden" name="action" value="ignore" />
               <button type="submit"><span class="icon icon-20 icon-cancel"></span> Ignore</button>
           </form></li>
+
+          $if reported and myself and myself['userid'] in staff.MODS:
+            <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
+          $elif myself:
+            <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
 
         <li class="stream-status">
           $if profile['streaming_status'] == "started":

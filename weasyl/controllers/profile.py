@@ -5,7 +5,7 @@ from pyramid.response import Response
 
 from weasyl import (
     character, collection, commishinfo, define, favorite, folder,
-    followuser, frienduser, journal, macro, media, profile, shout, submission,
+    followuser, frienduser, journal, macro, media, profile, report, shout, submission,
     pagination)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
@@ -116,6 +116,10 @@ def profile_(request):
         commishinfo.select_list(otherid),
         # Friends
         lambda: frienduser.has_friends(otherid),
+        # Reported
+        report.check(userid=otherid),
+        # Violations
+        [i for i in macro.MACRO_REPORT_VIOLATION if 1000 <= i[0] < 2000],
     ]))
 
     return Response(define.common_page_end(request.userid, page))

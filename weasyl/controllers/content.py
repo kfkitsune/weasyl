@@ -338,7 +338,7 @@ def submit_comment_(request):
 @login_required
 @token_checked
 def submit_report_(request):
-    form = request.web_input(submitid="", charid="", journalid="", reportid="", violation="", content="")
+    form = request.web_input(submitid="", charid="", journalid="", userid="", reportid="", violation="", content="")
 
     report.create(request.userid, form)
     if form.reportid:
@@ -347,6 +347,9 @@ def submit_report_(request):
         raise HTTPSeeOther(location="/submission/%i" % (define.get_int(form.submitid),))
     elif define.get_int(form.charid):
         raise HTTPSeeOther(location="/character/%i" % (define.get_int(form.charid),))
+    elif define.get_int(form.userid):
+        query = profile.select_profile(userid=define.get_int(form.userid), viewer=request.userid)
+        raise HTTPSeeOther(location="/user/{name}".format(name=query['username']))
     else:
         raise HTTPSeeOther(location="/journal/%i" % (define.get_int(form.journalid),))
 

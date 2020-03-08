@@ -10,7 +10,7 @@ from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
 from libweasyl import constants, staff
 from weasyl.error import WeasylError
-from weasyl import macro as m, define as d, media, note
+from weasyl import macro as m, define as d, media, note, profile
 
 
 _CONTENT = 2000
@@ -21,7 +21,7 @@ def _convert_violation(target):
     return violation[0] if violation else 'Unknown'
 
 
-def _dict_of_targetid(submitid, charid, journalid):
+def _dict_of_targetid(submitid, charid, journalid, userid):
     """
     Given a target of some type, return a dictionary indicating what the 'some
     type' is. The dictionary's key will be the appropriate column on the Report
@@ -33,19 +33,22 @@ def _dict_of_targetid(submitid, charid, journalid):
         return {'target_char': charid}
     elif journalid:
         return {'target_journal': journalid}
+    elif userid:
+        return {'target_user': userid}
     else:
         raise ValueError('no ID given')
 
 
 # form
-#   submitid     violation
-#   charid       content
-#   journalid
+#   submitid     userid
+#   charid       violation
+#   journalid    content
 
 def create(userid, form):
     form.submitid = d.get_int(form.submitid)
     form.charid = d.get_int(form.charid)
     form.journalid = d.get_int(form.journalid)
+    form.userid = d.get_int(form.userid)
     form.violation = d.get_int(form.violation)
     form.content = form.content.strip()[:_CONTENT]
 
@@ -55,7 +58,7 @@ def create(userid, form):
     except StopIteration:
         raise WeasylError("Unexpected")
 
-    if not form.submitid and not form.charid and not form.journalid:
+    if not form.submitid and not form.charid and not form.journalid and not form.userid:
         raise WeasylError("Unexpected")
     elif form.violation == 0:
         if userid not in staff.MODS:
@@ -63,6 +66,8 @@ def create(userid, form):
     elif (form.submitid or form.charid) and not 2000 <= form.violation < 3000:
         raise WeasylError("Unexpected")
     elif form.journalid and not 3000 <= form.violation < 4000:
+        raise WeasylError("Unexpected")
+    elif form.userid and not 1000 <= form.violation < 2000:
         raise WeasylError("Unexpected")
     elif vtype[3] and not form.content:
         raise WeasylError("ReportCommentRequired")
@@ -75,11 +80,14 @@ def create(userid, form):
         )
     )
 
-    if is_hidden is None or (form.violation != 0 and is_hidden):
+    if form.userid:
+        # Will raise WeasylError('RecordMissing') if resolving the profile fails
+        profile.select_profile(d.get_int(form.userid), userid)
+    elif is_hidden is None or (form.violation != 0 and is_hidden):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()
-    target_dict = _dict_of_targetid(form.submitid, form.charid, form.journalid)
+    target_dict = _dict_of_targetid(form.submitid, form.charid, form.journalid, form.userid)
     report = Report.query.filter_by(is_closed=False, **target_dict).first()
     if report is None:
         if form.violation == 0:
@@ -98,6 +106,7 @@ _report_types = [
     '_target_sub',
     '_target_char',
     '_target_journal',
+    '_target_user',
 ]
 
 
@@ -244,10 +253,10 @@ def close(userid, form):
         note.send(userid, note_form)
 
 
-def check(submitid=None, charid=None, journalid=None):
+def check(submitid=None, charid=None, journalid=None, userid=None):
     return bool(
         Report.query
-        .filter_by(is_closed=False, **_dict_of_targetid(submitid, charid, journalid))
+        .filter_by(is_closed=False, **_dict_of_targetid(submitid, charid, journalid, userid))
         .count())
 
 
@@ -259,6 +268,7 @@ def select_reported_list(userid):
         .options(joinedload('_target_sub'))
         .options(joinedload('_target_char'))
         .options(joinedload('_target_journal'))
+        .options(joinedload('_target_user'))
         .filter(ReportComment.violation != 0)
         .filter_by(userid=userid))
 
